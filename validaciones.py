@@ -176,26 +176,7 @@ class Validaciones:
         if contraseña.isdigit():
             return False, "La contraseña debe contener al menos una letra"
         return True, "Contraseña valida"
-    
-    @staticmethod
-    def validar_monto(monto):
-        try:
-            monto_num = float(monto)
-            if monto_num <0:
-                return False,"El monto no puede ser negativo"
-            if monto_num> 1000000:
-                return False, "El monto es demasiado alto"
-            return True,"Monto valido"
-        except ValueError:
-            return False, "El monto debe ser un numero valido"
-    @staticmethod
-    def validar_metodo_pago(metodo):
-        metodos_validos = ["efectivo","tarjeta debito","tarjeta credito","transferencia"]
-        if not metodo or metodo.strip() == "":
-            return False, "El metodo de pago no puede estar vacio"
-        if metodo.lower() not in metodos_validos:
-            return False, f"Metodo de pago invalido. Debe tener: {', '.join(metodos_validos)}"
-        return True,"Metodo de pago valido"
+
     @staticmethod
     def validar_tipo_suscripcion(tipo_suscripcion):
         suscripciones_validas = ["mensual","semestral","trimestral","anual"]
