@@ -3,7 +3,7 @@ import os
 import re
 from datetime import datetime,timedelta
 from validaciones import Validaciones
-from pago_suscrip import Suscripcion
+from suscripcion import Suscripcion
 from historial_peso import HistorialPeso
 from cliente import Cliente
 
@@ -13,7 +13,6 @@ def crear_archivo():
         "ejercicios.json": [],
         "entrenadores.json":[],
         "suscripciones.json":[],
-        "pagos.json":[],
         "turnos_entrenadores.json":[],
         "horas_gimnacion.json":{
             "dias_semanas":{
@@ -40,7 +39,6 @@ class Gimnacio:
         self.entrenadores = []
         self.ejercicios = []
         self.suscripciones = []
-        self.pago =[]
         self.historial_peso =[]
         self.turno_entrenadores = []
         self.horario_gimnacio = []
@@ -56,8 +54,6 @@ class Gimnacio:
                 self.ejercicios = json.load(f)
             with open("suscripciones.json","r",encoding="utf-8") as f:
                 self.suscripciones = json.load(f)
-            with open("pagos.json","r",encoding="utf-8") as f:
-                self.pago = json.load(f)
             with open("historial_peso.json","r",encoding="utf-8") as f:
                 self.historial_peso = json.load(f)
             with open("turnos_entrenadores.json","r",encoding="utf-8") as f:
@@ -77,8 +73,6 @@ class Gimnacio:
                 json.dump(self.ejercicios, indent=4,ensure_ascii=False)
             with open("suscripciones.json","w",encoding="utf-8") as f:
                 json.dump(self.suscripciones, indent=4,ensure_ascii=False)
-            with open("pagos.json","w",encoding="utf-8") as f:
-                json.dump(self.pago, indent=4,ensure_ascii=False)
             with open("historial_peso.json","w",encoding="utf-8") as f:
                 json.dump(self.historial_peso, indent=4,ensure_ascii=False)
             with open("turno_entrenadores.json","w",encoding="utf-8") as f:
@@ -213,43 +207,4 @@ class Gimnacio:
                         sus_completa["nombre_cliente"] = cliente["nombre"]
                         suscripciones_por_vencer.append(sus_completa)
         return suscripciones_por_vencer
-    #gestionar pagos
-    def registrar_pago(self,pago):
-        #Se verifica si existe un cliente
-        exito, cliente = self.buscar_cliente_por_rut(pago.rut_cliente)
-        if not exito:
-            return False,"El cliente no existe en el sistema"
-        self.pago.append(pago.a_diccionario())
-        exito, mensaje = self.guardar_datos()
-        if exito:
-            return True, f"Pago de ${pago.monto} registrado exitosamente"
-        return False, mensaje
-    def buscar_pagos_cliente(self,rut_cliente):
-        #read, buscando todos lso pagos de un cliente
-        pagos_cliente = [p for p in self.pagos if p["rut_cliente"] == rut_cliente]
-        return pagos_cliente
-    def calcula_total_pagos_cliente(self,rut_cliente):
-        #read, se calcula el total pagado por un cliente
-        pagos = self.buscar_pagos_cliente(rut_cliente) #Se buscan los pagos realizados
-        total = sum(p["monto"] for p in pagos)
-        return total
-    def reporte_pagos_por_fechas(self,fecha):
-        #read, se lista todos los pagos por una fecha
-        pagos_fecha = [p for p in self.pago if p["fecha_pago"] == fecha]
-        total_dia = sum(p["monto"] for p in pagos_fecha)
-        return pagos_fecha, total_dia
-    def reporte_pagos_por_metodo(self,mes,año):
-        #read, de reporte de pagos por metodo de pago en un mes
-        reporte = {
-            "efectivo":0,
-            "tarjeta debito":0,
-            "tarjeta credito":0,
-            "transferencia":0
-        }
-        for pago in self.pago:
-            fecha_pago = datetime.strftime(pago["fecha_pago"], "%Y-%m-%d")
-            if fecha_pago.moth == mes and fecha_pago.year == año:
-                metodo = pago["metodo_pago"]
-                reporte[metodo] = reporte.get(metodo,0) + pago["monto"]
-            return reporte
     

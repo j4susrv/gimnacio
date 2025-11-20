@@ -39,18 +39,3 @@ class Suscripcion:
             "activa":self.esta_activa(),
             "dias_restantes":self.dias_restantes()
         }
-class Pago:
-    def __init__(self,rut_cliente,monto,metodo_pago,fecha_pago,concepto = "Suscripcion"):
-        self.rut_cliente = rut_cliente
-        self.monto = monto
-        self.metodo_pago = metodo_pago
-        self.fecha_pago = fecha_pago
-        self.concepto = concepto
-    def a_diccionario(self):
-        return{
-            "rut_cliente":self.rut_cliente,
-            "monto":self.monto,
-            "metodo_pago":self.metodo_pago,
-            "fecha_pago":self.fecha_pago,
-            "concepto":self.concepto
-        }
