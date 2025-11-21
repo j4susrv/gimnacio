@@ -35,7 +35,6 @@ class Suscripcion:
             "rut_cliente":self.rut_cliente,
             "tipo_suscripcion":self.tipo_suscripcion,
             "fecha_inicio":self.fecha_fin,
-            "monto":self.fecha_fin,
             "activa":self.esta_activa(),
             "dias_restantes":self.dias_restantes()
         }

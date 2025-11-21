@@ -15,7 +15,7 @@ class Validaciones:
         if nombre.count(" ")>5:
             return False, "Contiene demasiados espacios"
         
-        return True,"Nombre invalido"
+        return True,"Nombre valido"
     
     @staticmethod
     def validar_rut(rut):
@@ -46,10 +46,10 @@ class Validaciones:
 
         if dv_calculado == 11:
             dv_esperado = "0"
-        if dv_calculado == 10:
+        elif dv_calculado == 10:
             dv_esperado = "K"
         else:
-            dv_calculado = str(dv_calculado)
+            dv_esperado = str(dv_calculado)
 
         # se verifica si el codigo verificador es el correcto
         if digito_verificador != dv_esperado:
@@ -64,7 +64,7 @@ class Validaciones:
             fecha = None
             for formato in formatos:
                 try:
-                    fecha = datetime.strftime(fecha_str,formato)
+                    fecha = datetime.strptime(fecha_str,formato)
                     break
                 except ValueError:
                     continue
@@ -90,7 +90,7 @@ class Validaciones:
     def validar_estatura(estatura):
         try:
             estatura_num = float(estatura)
-            if estatura_num < 50:
+            if estatura_num < 500:
                 return False, "Estatura debe der mayor a 50 cm"
             if estatura_num >250:
                 return False, "Estatura debe ser menor a 250 cm"
@@ -180,10 +180,10 @@ class Validaciones:
     @staticmethod
     def validar_tipo_suscripcion(tipo_suscripcion):
         suscripciones_validas = ["mensual","semestral","trimestral","anual"]
-        if not tipo_suscripcion or tipo_suscripcion.scrip() == "":
+        if not tipo_suscripcion or tipo_suscripcion.strip() == "":
             return False, "El tipo de suscripcion no puede estar vacio"
         if tipo_suscripcion.lower() not in suscripciones_validas:
-            return False,f"Tipo de suscripcion invalido. Debe ser {', '.join(tipo_suscripcion)}"
+            return False,f"Tipo de suscripcion invalido. Debe ser {', '.join(suscripciones_validas)}"
         return True, "Tipo de suscripcion valido"
     @staticmethod
     def validar_especialidad(especialidad):
@@ -211,4 +211,3 @@ class Validaciones:
         else:
             # Si no coincide con el patrón
             return False, f"La hora '{hora.strip()}' no tiene el formato HH:MM por lo tanto no es valido."
-        
