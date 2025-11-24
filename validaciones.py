@@ -1,6 +1,13 @@
 import re
 from datetime import datetime
 class Validaciones:
+
+    ESPECIALIDADES_VALIDAS = [
+        "zumba", "cardio", "fuerza", "funcional", "yoga",
+        "pilates", "spinning", "crossfit", "boxeo", "elongacion",
+        "reduccion de calorias"
+    ]
+
     @staticmethod
     def validar_nombre(nombre):
         if not nombre or nombre.strip() == "":
@@ -90,15 +97,16 @@ class Validaciones:
     def validar_estatura(estatura):
         try:
             estatura_num = float(estatura)
-            if estatura_num < 500:
-                return False, "Estatura debe der mayor a 50 cm"
-            if estatura_num >250:
-                return False, "Estatura debe ser menor a 250 cm"
-            if estatura_num < 120 or estatura_num >220:
-                return False,f"Estatura inusual {estatura_num}"
-            return True,"Estatura valida"
+            if estatura_num < 50:
+                return False, "La estatura debe ser mayor a 50 cm"
+            if estatura_num > 250:
+                return False, "La estatura debe ser menor a 250 cm"
+            if estatura_num < 120 or estatura_num > 220:
+                return False, f"Estatura inusual: {estatura_num} cm"
+            return True, "Estatura válida"
+
         except ValueError:
-            return False,"Error en la estatura"
+            return False, "Error: la estatura no es un número"
         
     @staticmethod
     def validar_peso(peso):
@@ -187,17 +195,14 @@ class Validaciones:
         return True, "Tipo de suscripcion valido"
     @staticmethod
     def validar_especialidad(especialidad):
-        especialidades_validas = [
-            "zumba","cardio","fuerza","funcional","yoga",
-            "pilates","spinning","crossfit","boxeo","elongacion",
-            "reduccion de calorias"
-        ]
         if not especialidad or especialidad.strip() == "":
-            return False, "El campo especialidad no puede estar vacio"
-        #Valida que exista la especilidad y las muestra en caso de no ser asi
-        if especialidad.lower() not in especialidades_validas:
-            return False,f"Especialidad invalida. Debe ser {', '.join(especialidades_validas)}"
-        return True, "Especialidad valida"
+            return False, "El campo especialidad no puede estar vacío"
+        
+        # Validamos contra la lista de la clase
+        if especialidad.lower() not in Validaciones.ESPECIALIDADES_VALIDAS:
+            return False, "Especialidad no válida. Seleccione una de la lista."
+            
+        return True, "Especialidad válida"
     @staticmethod
     def validar_hora(hora):
         if not hora or hora.strip() == "":
