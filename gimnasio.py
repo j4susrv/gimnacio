@@ -13,6 +13,13 @@ def crear_archivo():
         "clientes.json": [],
         "ejercicios.json": [],
         "entrenadores.json": [],
+        "administradores.json":[
+            {
+                "rut": "22297344-9",
+                "contraseña": "jesusrivera",
+                "nombre": "Jesus Rivera" 
+            }
+        ],
         "suscripciones.json": [],
         "turnos_entrenadores.json": [],
         "horas_gimnacion.json": {
@@ -37,6 +44,7 @@ class Gimnacio:
     def __init__(self):
         self.clientes = []
         self.entrenadores = []
+        self.administradores = []
         self.ejercicios = []
         self.suscripciones = []
         self.historial_peso = []
@@ -53,6 +61,8 @@ class Gimnacio:
                 self.entrenadores = json.load(f)
             with open("ejercicios.json", "r", encoding="utf-8") as f:
                 self.ejercicios = json.load(f)
+            with open("administradores.json", "r", encoding="utf-8") as f:
+                self.administradores = json.load(f)    
             with open("suscripciones.json", "r", encoding="utf-8") as f:
                 self.suscripciones = json.load(f)
             with open("historial_peso.json", "r", encoding="utf-8") as f:
@@ -72,6 +82,8 @@ class Gimnacio:
                 json.dump(self.entrenadores, f, indent=4, ensure_ascii=False)
             with open("ejercicios.json", "w", encoding="utf-8") as f:
                 json.dump(self.ejercicios, f, indent=4, ensure_ascii=False)
+            with open("administradores.json", "w", encoding="utf-8") as f:
+                json.dump(self.administradores, f, indent=4, ensure_ascii=False)
             with open("suscripciones.json", "w", encoding="utf-8") as f:
                 json.dump(self.suscripciones, f, indent=4, ensure_ascii=False)
             with open("historial_peso.json", "w", encoding="utf-8") as f:
@@ -269,7 +281,7 @@ class Gimnacio:
             "progreso": "Bajó" if diferencia < 0 else "Subió" if diferencia > 0 else "Mantuvo"
         }, "Progreso calculado"
     
-    # ========== GESTIÓN DE TURNOS DE ENTRENADORES (CRUD COMPLETO) ==========
+    #gestion de entranador
     def asignar_turno_entrenador(self, turno):
         exito, _ = self.buscar_entrenador_por_rut(turno.rut_entrenador)
         if not exito:
@@ -467,3 +479,7 @@ class Gimnacio:
             return False, mensaje
         
         return False, "Índice de ejercicio inválido"
+
+if __name__ == "__main__":
+    gym = Gimnacio()
+    print("✅ Archivos creados correctamente")

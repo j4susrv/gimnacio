@@ -1,0 +1,39 @@
+{
+    "dias_semanas": {
+        "lunes": {
+            "abre": "07:00",
+            "cierra": "22:00",
+            "activo": true
+        },
+        "martes": {
+            "abre": "07:00",
+            "cierra": "22:00",
+            "activo": true
+        },
+        "miercoles": {
+            "abre": "07:00",
+            "cierra": "22:00",
+            "activo": true
+        },
+        "jueves": {
+            "abre": "07:00",
+            "cierra": "22:00",
+            "activo": true
+        },
+        "viernes": {
+            "abre": "07:00",
+            "cierra": "22:00",
+            "activo": true
+        },
+        "sabado": {
+            "abre": "09:00",
+            "cierra": "17:00",
+            "activo": true
+        },
+        "domingo": {
+            "abre": "12:00",
+            "cierra": "17:00",
+            "activo": true
+        }
+    }
+}
