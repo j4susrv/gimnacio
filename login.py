@@ -36,7 +36,7 @@ def verificar_login(rut, contraseña, tipo):
     # Busca en el JSON si existe un usuario con ese RUT y contraseña
     for usuario in datos:
         if usuario.get("rut") == rut and usuario.get("contraseña") == contraseña:
-            print(f"✅ Usuario encontrado: {usuario}")
+            print(f"Usuario encontrado: {usuario}")
             return True, usuario
     # Si no encuentra coincidencia, retorna "Incorrecto"
     print(f"Usuario no encontrado")
