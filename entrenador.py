@@ -22,51 +22,34 @@ class Entrenador:
     def a_diccionario(self):
         return {
             "nombre": self.nombre,
-            "fecha_nacimiento":self.fecha_nacimiento,
-            "rut":self.rut,
-            "estatura":self.estatura,
-            "peso":self.peso,
-            "especialidades":self.especialidades
-
+            "fecha_nacimiento": self.fecha_nacimiento,
+            "rut": self.rut,
+            "estatura": self.estatura,
+            "peso": self.peso,
+            "especialidades": self.especialidades
         }
-    def validar_datos(nombre,fecha_nacimiento,rut,estatura,peso):
-        errores= []
-        advertencias = []
 
-        valido, mensaje = Validaciones.validar_nombre(nombre)
-        if not valido:
-            errores.append(mensaje)
-        valido,mensaje = Validaciones.validar_fecha_nacimiento(fecha_nacimiento)
-        if not valido:
-            errores.append(mensaje)
-        valido, mensaje = Validaciones.validar_rut(rut)
-        if not valido:
-            errores.append(mensaje)
-        valido, mensaje = Validaciones.validar_estatura(estatura)
-        if not valido:
-            errores.append(mensaje)
-        valido, mensaje = Validaciones.validar_peso(peso)
-        if not valido:
-            errores.append(mensaje)
-        elif "Advertencia" in mensaje:
-            advertencias.append(mensaje)
-        return errores, advertencias
 class TurnoEntrenador:
-    def __init__(self,rut_entrenador,dia_semana,hora_inicio,hora_final):
+    def __init__(self, rut_entrenador, dia_semana, hora_inicio, hora_final):
         self.rut_entrenador = rut_entrenador
         self.dia_semana = dia_semana.lower()
         self.hora_inicio = hora_inicio
-        self.hora_final = hora_final
+        self.hora_final = hora_final  # CORREGIDO: nombre correcto
+    
     def calcular_horas_trabajadas(self):
-        hora_inicio = datetime.strftime(self.hora_inicio,"%H:%M")
-        hora_final = datetime.strftime(self.hora_final,"%H:%M")
-        diferencia = hora_final-hora_inicio
-        return diferencia.seconds/3600 #para convertir segundos a horas
+        try:
+            hora_inicio = datetime.strptime(self.hora_inicio, "%H:%M")
+            hora_final = datetime.strptime(self.hora_final, "%H:%M")
+            diferencia = hora_final - hora_inicio
+            return diferencia.seconds / 3600
+        except:
+            return 0
+    
     def a_diccionario(self):
         return {
             "rut_entrenador": self.rut_entrenador,
             "dia_semana": self.dia_semana,
             "hora_inicio": self.hora_inicio,
-            "hora_fin": self.hora_fin,
+            "hora_fin": self.hora_final,  # CORREGIDO: usar hora_final
             "horas_trabajo": self.calcular_horas_trabajadas()
         }

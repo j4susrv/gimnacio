@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import os, json
 from validaciones import Validaciones 
+from cliente import Cliente
+from entrenador import Entrenador
 from registro_entrenador import AppEntrenador
 
 ventana = tk.Tk()
@@ -28,7 +30,31 @@ notebook.add(cliente, text="  Cliente  ")
 notebook.add(entrenador, text="  Entrenador  ")
 
 app_entrenador = AppEntrenador(entrenador)
-# notebook.add(administrador, text="  Admin  ") # Descomentar cuando lo use
+
+# Función para guardar cliente en JSON
+def guardar_cliente_json(cliente_obj):
+    """Guarda el cliente en clientes.json"""
+    archivo = "clientes.json"
+    
+    try:
+        # Leer datos existentes
+        if os.path.exists(archivo):
+            with open(archivo, 'r', encoding='utf-8') as f:
+                datos = json.load(f)
+        else:
+            datos = []
+        
+        # Convertir cliente a diccionario y agregarlo
+        cliente_dict = cliente_obj.a_diccionario()
+        datos.append(cliente_dict)
+        
+        # Guardar en archivo
+        with open(archivo, 'w', encoding='utf-8') as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
+        
+        return True, "Cliente guardado exitosamente"
+    except Exception as e:
+        return False, f"Error al guardar: {str(e)}"
 
 # logica
 def ingresar_usuario():
@@ -37,12 +63,16 @@ def ingresar_usuario():
     fecha_nacimiento = input_fecha_nacimiento.get().strip()
     estatura = input_estatura.get().strip()
     peso = input_peso.get().strip()
+    
+    # CAMPOS ADICIONALES (valores por defecto)
+    estado_civil = "No especificado"
+    direccion = "No especificada"
 
     validaciones = Validaciones()
     validar_nombre = validaciones.validar_nombre(nombre)
     validar_rut = validaciones.validar_rut(rut)  
     validar_fecha_nacimiento = validaciones.validar_fecha_nacimiento(fecha_nacimiento)
-    validar_estatura  = validaciones.validar_estatura(estatura)
+    validar_estatura = validaciones.validar_estatura(estatura)
     validar_peso = validaciones.validar_peso(peso)
 
     print(f"Nombre: {validar_nombre}")
@@ -58,7 +88,35 @@ def ingresar_usuario():
         print(f"  - {validar_fecha_nacimiento[1]}")
         print(f"  - {validar_estatura[1]}")
         print(f"  - {validar_peso[1]}")
-        messagebox.showinfo("Éxito", "Usuario registrado correctamente")
+        
+        try:
+            # CREAR OBJETO CLIENTE Y GUARDARLO
+            nuevo_cliente = Cliente(
+                nombre=nombre,
+                rut=rut,
+                fecha_nacimiento=fecha_nacimiento,
+                estatura=float(estatura),
+                peso=float(peso),
+                estado_civil=estado_civil,
+                direccion=direccion
+            )
+            
+            # Guardar en JSON
+            exito, mensaje = guardar_cliente_json(nuevo_cliente)
+            
+            if exito:
+                messagebox.showinfo("Éxito", f"{mensaje}\n\nCliente {nombre} registrado correctamente")
+                # Limpiar campos
+                input_nombre.delete(0, tk.END)
+                input_rut.delete(0, tk.END)
+                input_fecha_nacimiento.delete(0, tk.END)
+                input_estatura.delete(0, tk.END)
+                input_peso.delete(0, tk.END)
+            else:
+                messagebox.showerror("Error", mensaje)
+                
+        except Exception as e:
+            messagebox.showerror("Error al crear cliente", f"Error: {str(e)}")
     else:
         print("\n Errores encontrados")
         errores = ""
@@ -107,7 +165,6 @@ input_peso = ttk.Entry(frame_centro, width=30, font=("Helvetica", 10))
 input_peso.grid(row=5, column=1, sticky="w", padx=10)
 
 # Botón
-# Usamos un frame para dar espacio extra al botón
 boton = ttk.Button(frame_centro, text='REGISTRAR CLIENTE', command=ingresar_usuario, style="TButton")
 boton.grid(row=6, column=0, columnspan=2, pady=30, ipadx=10, ipady=5)
 
@@ -115,12 +172,6 @@ boton.grid(row=6, column=0, columnspan=2, pady=30, ipadx=10, ipady=5)
 # --- INTERFAZ ENTRENADOR
 frame_centro_ent = tk.Frame(entrenador, bg="white")
 frame_centro_ent.pack(expand=True)
-
-
-# --- INTERFAZ ADMIN ---
-#frame_centro_adm = tk.Frame(administrador, bg="white")
-#frame_centro_adm.pack(expand=True)
-#tk.Label(frame_centro_adm, text="ADMINISTRACIÓN", font=("Helvetica", 18, "bold"), bg="white", fg="#333").pack(pady=20)
 
 
 ventana.mainloop()

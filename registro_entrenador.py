@@ -1,59 +1,14 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import os, json
-from validaciones import Validaciones 
+from validaciones import Validaciones
+# IMPORTACIÓN CLAVE: Traemos tu clase Entrenador desde tu archivo
+from entrenador import Entrenador 
 
-class Entrenador:
-    def __init__(self, nombre, fecha_nacimiento, rut, estatura, peso, especialidades):
-        self.nombre = nombre
-        self.fecha_nacimiento = fecha_nacimiento
-        self.rut = rut
-        self.estatura = estatura
-        self.peso = peso
-        self.especialidades = especialidades if especialidades is not None else []
-
-    def agregar_especialidad(self, especialidad):
-        try:
-            valido, mensaje = Validaciones.validar_especialidad(especialidad)
-        except AttributeError:
-            valido, mensaje = True, "OK" 
-        if valido and especialidad.lower() not in self.especialidades:
-            self.especialidades.append(especialidad.lower())
-            return True, f"Especialidad agregada: {especialidad}"
-        return False, mensaje if not valido else "Especialidad ya existe"
-
-    def a_diccionario(self):
-        return {
-            "nombre": self.nombre,
-            "fecha_nacimiento": self.fecha_nacimiento,
-            "rut": self.rut,
-            "estatura": self.estatura,
-            "peso": self.peso,
-            "especialidades": self.especialidades
-        }
-
-    @staticmethod
-    def validar_datos(nombre, fecha_nacimiento, rut, estatura, peso):
-        errores = []
-        advertencias = []
-        v_nom = Validaciones.validar_nombre(nombre)
-        if not v_nom[0]: errores.append(v_nom[1])
-        v_fecha = Validaciones.validar_fecha_nacimiento(fecha_nacimiento)
-        if not v_fecha[0]: errores.append(v_fecha[1])
-        v_rut = Validaciones.validar_rut(rut)
-        if not v_rut[0]: errores.append(v_rut[1])
-        v_est = Validaciones.validar_estatura(estatura)
-        if not v_est[0]: errores.append(v_est[1])
-        v_peso = Validaciones.validar_peso(peso)
-        if not v_peso[0]: errores.append(v_peso[1])
-        elif "Advertencia" in v_peso[1]: advertencias.append(v_peso[1])
-        return errores, advertencias
-
-# interfaz
 class AppEntrenador:
     def __init__(self, parent_frame):
         self.frame = parent_frame
-        self.lista_especialidades_ui = [] # Lista temporal
+        self.lista_especialidades_ui = [] # Lista temporal para la interfaz
         self.crear_widgets()
 
     def crear_widgets(self):
@@ -63,7 +18,7 @@ class AppEntrenador:
 
         tk.Label(frame_centro, text="REGISTRO DE ENTRENADOR", font=("Helvetica", 18, "bold"), bg="white", fg="#333").grid(row=0, column=0, columnspan=3, pady=(0, 30))
 
-        # Inputs (Usamos self. para poder acceder a ellos desde otros métodos)
+        # Inputs
         tk.Label(frame_centro, text="Nombre Completo:", bg="white", font=("Helvetica", 11)).grid(row=1, column=0, sticky="e", padx=10, pady=10)
         self.input_nombre = ttk.Entry(frame_centro, width=30, font=("Helvetica", 10))
         self.input_nombre.grid(row=1, column=1, sticky="w", padx=10)
@@ -90,6 +45,7 @@ class AppEntrenador:
         frame_esp = tk.Frame(frame_centro, bg="white")
         frame_esp.grid(row=6, column=1, sticky="w", padx=10, pady=10)
 
+        # Usamos las validaciones para llenar el Combobox
         self.input_especialidad = ttk.Combobox(frame_esp, values=Validaciones.ESPECIALIDADES_VALIDAS, width=18, font=("Helvetica", 10), state="readonly")
         self.input_especialidad.pack(side="left")
 
@@ -124,25 +80,35 @@ class AppEntrenador:
         self.lista_especialidades_ui.clear()
 
     def registrar_entrenador(self):
-        # Recogemos datos usando self.input_
+        # 1. Recogemos datos de la interfaz
         nombre = self.input_nombre.get().strip()
         rut = self.input_rut.get().strip()
         fecha = self.input_fecha.get().strip()
         estatura = self.input_estatura.get().strip()
         peso = self.input_peso.get().strip()
 
-        errores, advertencias = Entrenador.validar_datos(nombre, fecha, rut, estatura, peso)
+        # 2. Validamos los datos básicos ANTES de crear el objeto
+        # Usamos directamente la clase Validaciones para chequear campos
+        errores = []
+        if not Validaciones.validar_nombre(nombre)[0]: errores.append("Nombre inválido")
+        if not Validaciones.validar_rut(rut)[0]: errores.append("RUT inválido")
+        if not Validaciones.validar_fecha_nacimiento(fecha)[0]: errores.append("Fecha inválida")
+        if not Validaciones.validar_estatura(estatura)[0]: errores.append("Estatura inválida")
+        if not Validaciones.validar_peso(peso)[0]: errores.append("Peso inválido")
 
         if errores:
-            messagebox.showerror("Errores", "\n".join(errores))
+            messagebox.showerror("Errores de Validación", "\n".join(errores))
             return
-        if advertencias:
-            messagebox.showwarning("Advertencia", "\n".join(advertencias))
 
+        # 3. Creamos la instancia de TU clase Entrenador (importada)
+        # Inicializamos con lista vacía y luego agregamos las especialidades validadas
         nuevo_entrenador = Entrenador(nombre, fecha, rut, estatura, peso, [])
+        
+        # Agregamos las especialidades usando el método de tu clase
         for esp in self.lista_especialidades_ui:
             nuevo_entrenador.agregar_especialidad(esp)
 
+        # 4. Guardamos en JSON
         archivo = "entrenadores.json"
         datos = []
         if os.path.exists(archivo):

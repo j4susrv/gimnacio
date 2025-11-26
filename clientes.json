@@ -1,0 +1,14 @@
+[
+    {
+        "nombre": "Matias Rauque",
+        "rut": "21.986.316-0",
+        "fecha_nacimiento": "26-11-2005",
+        "estatura": 167.0,
+        "peso": 75.0,
+        "estado_civil": "No especificado",
+        "direccion": "No especificada",
+        "imc": 26.89,
+        "rutina_mensual": 10,
+        "categoria_imc": "Sobrepeso"
+    }
+]
