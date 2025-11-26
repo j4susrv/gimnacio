@@ -122,17 +122,75 @@ class Gimnacio:
         return False, "Cliente no encontrado"
     
     def eliminar_cliente(self, rut):
-        # se eliminan de nuevo con un recorrido, buscando el rut y lo eliminan guardando la eliminacion
-        for i, c in enumerate(self.clientes):
-            if c["rut"] == rut:
-                nombre = c["nombre"]
-                self.clientes.pop(i)
-                exito, mensaje = self.guardar_datos()
-                if exito:
-                    return True, f"Cliente {nombre} eliminado exitosamente"
-                return False, mensaje
+        """Elimina cliente y todos sus datos asociados (en cascada)."""
+        try:
+            # 1. Verificar que el cliente existe
+            cliente_encontrado = False
+            nombre_cliente = ""
+            
+            for i, c in enumerate(self.clientes):
+                if c["rut"] == rut:
+                    cliente_encontrado = True
+                    nombre_cliente = c["nombre"]
+                    indice_cliente = i
+                    break
+            
+            if not cliente_encontrado:
+                return False, "Cliente no encontrado"
+            
+            # 2. Eliminar suscripciones asociadas
+            suscripciones_eliminadas = 0
+            self.suscripciones = [
+                sus for sus in self.suscripciones 
+                if sus["rut_cliente"] != rut
+            ]
+            suscripciones_eliminadas = len([
+                sus for sus in self.suscripciones 
+                if sus["rut_cliente"] != rut
+            ])
+            
+            # 3. Eliminar historial de peso asociado
+            peso_eliminado = len([
+                h for h in self.historial_peso 
+                if h["rut_cliente"] == rut
+            ])
+            self.historial_peso = [
+                h for h in self.historial_peso 
+                if h["rut_cliente"] != rut
+            ]
+            
+            # 4. Eliminar ejercicios/rutinas asociados
+            ejercicios_eliminados = len([
+                ej for ej in self.ejercicios 
+                if ej["rut_cliente"] == rut
+            ])
+            self.ejercicios = [
+                ej for ej in self.ejercicios 
+                if ej["rut_cliente"] != rut
+            ]
+            
+            # 5. Eliminar cliente
+            self.clientes.pop(indice_cliente)
+            
+            # 6. Guardar todos los cambios en JSON
+            exito, mensaje = self.guardar_datos()
+            
+            if exito:
+                resumen = f"""
+Cliente '{nombre_cliente}' (RUT: {rut}) eliminado exitosamente.
+
+Datos eliminados:
+- 1 Cliente
+- {peso_eliminado} registros de peso
+- {len([sus for sus in self.suscripciones if sus["rut_cliente"] == rut])} suscripciones
+- {ejercicios_eliminados} ejercicios/rutinas
+                """.strip()
+                return True, resumen
+            else:
+                return False, f"Error al guardar: {mensaje}"
         
-        return False, "Cliente no encontrado"
+        except Exception as e:
+            return False, f"Error en eliminación en cascada: {str(e)}"
     
     def buscar_cliente_por_rut(self, rut):
         for c in self.clientes:
