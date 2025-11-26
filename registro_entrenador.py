@@ -92,6 +92,19 @@ class AppEntrenador:
         estatura = self.input_estatura.get().strip()
         peso = self.input_peso.get().strip()
 
+        # Validar RUT duplicado PRIMERO
+        archivo = "entrenadores.json"
+        if os.path.exists(archivo):
+            try:
+                with open(archivo, "r") as f:
+                    entrenadores_existentes = json.load(f)
+                    for entrenador in entrenadores_existentes:
+                        if entrenador.get("rut") == rut:
+                            messagebox.showerror("Error", f"Ya existe un entrenador registrado con el RUT {rut}")
+                            return
+            except:
+                pass
+
         errores, advertencias = Entrenador.validar_datos(nombre,fecha,rut,estatura,peso,contraseña)
 
         if errores:
@@ -115,7 +128,6 @@ class AppEntrenador:
             nuevo_entrenador.agregar_especialidad(esp)
 
         # Guardar en JSON
-        archivo = "entrenadores.json"
         datos = []
         if os.path.exists(archivo):
             try:
@@ -126,8 +138,12 @@ class AppEntrenador:
 
         datos.append(nuevo_entrenador.a_diccionario())
 
-        with open(archivo, "w") as f:
-            json.dump(datos, f, indent=4)
+        with open(archivo, "w", encoding="utf-8") as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
 
         messagebox.showinfo("Éxito", f"Entrenador {nombre} registrado correctamente.")
         self.limpiar_formulario()
+        
+        # Cerrar la ventana de registro y volver al admin
+        ventana_actual = self.frame.winfo_toplevel()
+        ventana_actual.destroy()

@@ -15,6 +15,8 @@ class Entrenador:
             self.especialidades = especialidades
         self.contraseña = contraseña
         
+    def obtener_detalles(self):
+        print(f"Nombre {self.nombre}\n Rut: {self.rut}\n Especialidad: {self.especialidades}")
     
     def agregar_especialidad(self, especialidad):
         #se agregara una especialidad segun lo que haga el entrenador
@@ -40,11 +42,10 @@ class Entrenador:
             "peso": self.peso,
             "especialidades": self.especialidades,
             "contraseña": self.contraseña
-            
         }
     
     @staticmethod
-    def validar_datos(nombre, fecha_nacimiento, rut, estatura, peso,contraseña):
+    def validar_datos(nombre, fecha_nacimiento, rut, estatura, peso, contraseña):
         errores = []
         advertencias = []
 
@@ -63,9 +64,11 @@ class Entrenador:
         valido, mensaje = Validaciones.validar_estatura(estatura)
         if not valido:
             errores.append(mensaje)
-        valido,mensaje = Validaciones.validar_contraseña(contraseña)
+        
+        valido, mensaje = Validaciones.validar_contraseña(contraseña)
         if not valido:
             errores.append(mensaje)
+        
         valido, mensaje = Validaciones.validar_peso(peso)
         if not valido:
             errores.append(mensaje)
@@ -73,6 +76,8 @@ class Entrenador:
             advertencias.append(mensaje)
         
         return errores, advertencias
+
+
 class TurnoEntrenador:
     def __init__(self, rut_entrenador, dia_semana, hora_inicio, hora_final):
         self.rut_entrenador = rut_entrenador

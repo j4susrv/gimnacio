@@ -2,28 +2,22 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import json
 import os
-import subprocess
 from validaciones import Validaciones
+from gimnasio import Gimnacio
+from admin import AdminGimnasio
 
-# =======================
-# FUNCIONES DE LOGIN
-# =======================
+# Inicializar gimnasio al abrir login (crea archivos JSON)
+gimnasio = Gimnacio()
 
 def cargar_datos(archivo):
     if not os.path.exists(archivo):
-        print(f"Archivo no existe: {archivo}")
-        return []  
+        return []
     try:
         with open(archivo, "r", encoding="utf-8") as f:
             datos = json.load(f)
-            print(f"Cargado {archivo}: {datos}")
             return datos if datos else []
-    except json.JSONDecodeError as e:
-        print(f"Error JSON en {archivo}: {e}")
+    except:
         return []
-    except Exception as e:
-        print(f"Error general: {e}")
-        return []  
 
 def verificar_login(rut, contraseña, tipo):
     archivos = {
@@ -33,45 +27,54 @@ def verificar_login(rut, contraseña, tipo):
     }
 
     archivo = archivos.get(tipo)
-    print(f"Buscando archivo: {archivo}")
-
     datos = cargar_datos(archivo)
 
     if not datos:
-        print(f"No hay datos en {archivo}")
-        return False, "No existen"
+        return False, "No existen usuarios registrados"
 
     for usuario in datos:
-        if usuario.get("rut") == rut and usuario.get("contraseña") == contraseña:
-            print(f"Usuario encontrado: {usuario}")
-            return True, usuario
+        # Debug: imprimir para ver qué hay en el archivo
+        print(f"Verificando usuario: {usuario.get('nombre', 'Sin nombre')}")
+        print(f"RUT en archivo: '{usuario.get('rut')}' vs RUT ingresado: '{rut}'")
+        print(f"Contraseña en archivo existe: {usuario.get('contraseña') is not None}")
+        
+        # Verificar si el campo contraseña existe
+        if usuario.get("rut") == rut:
+            # Si no existe el campo contraseña en el JSON
+            if "contraseña" not in usuario:
+                return False, "Usuario sin contraseña configurada. Por favor contacte al administrador."
+            
+            # Verificar contraseña
+            if usuario.get("contraseña") == contraseña:
+                return True, usuario
+            else:
+                return False, "Contraseña incorrecta"
+    
+    return False, "Usuario no encontrado"
 
-    print("Usuario no encontrado")
-    return False, "Incorrecto"
 
-
-
+# Crear ventana principal
 ventana = tk.Tk()
 ventana.title("Gimnasio Mr. Fat - Login")
-ventana.geometry("600x400")
+ventana.geometry("500x400")
+ventana.configure(bg="white")
 
+# Crear notebook (pestañas)
 notebook = ttk.Notebook(ventana)
 notebook.pack(expand=True, fill="both", padx=10, pady=10)
 
 validaciones = Validaciones()
 
-# LOGIN CLIENTE
-
-tab_cliente = tk.Frame(notebook)
+#login cliente
+tab_cliente = tk.Frame(notebook, bg="white")
 notebook.add(tab_cliente, text="Cliente")
 
-tk.Label(tab_cliente, text="Login Cliente", font=("Arial", 16, "bold")).pack(pady=20)
-
-tk.Label(tab_cliente, text="RUT:").pack()
+tk.Label(tab_cliente, text="Login Cliente", font=("Helvetica", 16, "bold"), bg="white").pack(pady=20)
+tk.Label(tab_cliente, text="RUT:", bg="white").pack()
 input_cliente_rut = tk.Entry(tab_cliente, width=30)
 input_cliente_rut.pack(pady=5)
 
-tk.Label(tab_cliente, text="Contraseña:").pack()
+tk.Label(tab_cliente, text="Contraseña:", bg="white").pack(pady=(10, 0))
 input_cliente_contraseña = tk.Entry(tab_cliente, width=30, show="*")
 input_cliente_contraseña.pack(pady=5)
 
@@ -79,43 +82,50 @@ def ingresar_cliente():
     rut = input_cliente_rut.get().strip()
     contraseña = input_cliente_contraseña.get().strip()
 
-    valido_rut, msg_rut = validaciones.validar_rut(rut)
-    valido_contraseña, msg_contraseña = validaciones.validar_contraseña(contraseña)
-
-    if not valido_rut or not valido_contraseña:
-        errores = []
-        if not valido_rut: errores.append(msg_rut)
-        if not valido_contraseña: errores.append(msg_contraseña)
-        messagebox.showerror("Error", "\n".join(errores))
+    if not rut or not contraseña:
+        messagebox.showerror("Error", "Complete todos los campos")
         return
 
     existe, resultado = verificar_login(rut, contraseña, "cliente")
 
     if existe:
-        messagebox.showinfo("Éxito", f"Bienvenido {resultado.get('nombre', 'Cliente')}")
+        # Limpiar campos
+        input_cliente_rut.delete(0, tk.END)
+        input_cliente_contraseña.delete(0, tk.END)
+        
+        # Cerrar ventana de login
+        ventana.destroy()
+        
+        # Abrir menú del cliente
+        from menu_cliente import MenuCliente
+        
+        ventana_cliente = tk.Tk()
+        ventana_cliente.title("Gimnasio Mr. Fat - Área Cliente")
+        ventana_cliente.geometry("700x600")
+        ventana_cliente.configure(bg="white")
+        
+        frame_cliente = tk.Frame(ventana_cliente, bg="white")
+        frame_cliente.pack(expand=True, fill="both")
+        
+        MenuCliente(frame_cliente, resultado)
+        
+        ventana_cliente.mainloop()
     else:
-        if resultado == "No existen":
-            messagebox.showerror("Error", "No existen clientes registrados")
-        else:
-            messagebox.showerror("Error", "RUT o contraseña incorrectos")
+        messagebox.showerror("Error", f"Error de acceso: {resultado}")
         input_cliente_contraseña.delete(0, tk.END)
 
-tk.Button(tab_cliente, text="Ingresar", command=ingresar_cliente, width=30, height=2).pack(pady=20)
+tk.Button(tab_cliente, text="Ingresar", command=ingresar_cliente, width=20, height=2,fg="black").pack(pady=20)
 
-
-
-# LOGIN ENTRENADOR
-
-tab_entrenador = tk.Frame(notebook)
+#login entrenador
+tab_entrenador = tk.Frame(notebook, bg="white")
 notebook.add(tab_entrenador, text="Entrenador")
 
-tk.Label(tab_entrenador, text="Login Entrenador", font=("Arial", 16, "bold")).pack(pady=20)
-
-tk.Label(tab_entrenador, text="RUT:").pack()
+tk.Label(tab_entrenador, text="Login Entrenador", font=("Helvetica", 16, "bold"), bg="white").pack(pady=20)
+tk.Label(tab_entrenador, text="RUT:", bg="white").pack()
 input_entrenador_rut = tk.Entry(tab_entrenador, width=30)
 input_entrenador_rut.pack(pady=5)
 
-tk.Label(tab_entrenador, text="Contraseña:").pack()
+tk.Label(tab_entrenador, text="Contraseña:", bg="white").pack(pady=(10, 0))
 input_entrenador_contraseña = tk.Entry(tab_entrenador, width=30, show="*")
 input_entrenador_contraseña.pack(pady=5)
 
@@ -123,41 +133,50 @@ def ingresar_entrenador():
     rut = input_entrenador_rut.get().strip()
     contraseña = input_entrenador_contraseña.get().strip()
 
-    valido_rut, msg_rut = validaciones.validar_rut(rut)
-    valido_contraseña, msg_contraseña = validaciones.validar_contraseña(contraseña)
-
-    if not valido_rut or not valido_contraseña:
-        errores = []
-        if not valido_rut: errores.append(msg_rut)
-        if not valido_contraseña: errores.append(msg_contraseña)
-        messagebox.showerror("Error", "\n".join(errores))
+    if not rut or not contraseña:
+        messagebox.showerror("Error", "Complete todos los campos")
         return
 
     existe, resultado = verificar_login(rut, contraseña, "entrenador")
 
     if existe:
-        messagebox.showinfo("Éxito", f"Bienvenido {resultado.get('nombre', 'Entrenador')}")
+        # Limpiar campos
+        input_entrenador_rut.delete(0, tk.END)
+        input_entrenador_contraseña.delete(0, tk.END)
+        
+        # Cerrar ventana de login
+        ventana.destroy()
+        
+        # Abrir menú del entrenador
+        from menu_entrenador import MenuEntrenador
+        
+        ventana_entrenador = tk.Tk()
+        ventana_entrenador.title("Gimnasio Mr. Fat - Área Entrenador")
+        ventana_entrenador.geometry("700x600")
+        ventana_entrenador.configure(bg="white")
+        
+        frame_entrenador = tk.Frame(ventana_entrenador, bg="white")
+        frame_entrenador.pack(expand=True, fill="both")
+        
+        MenuEntrenador(frame_entrenador, resultado)
+        
+        ventana_entrenador.mainloop()
     else:
-        if resultado == "No existen":
-            messagebox.showerror("Error", "No existen entrenadores registrados")
-        else:
-            messagebox.showerror("Error", "RUT o contraseña incorrectos")
+        messagebox.showerror("Error", f"Error de acceso: {resultado}")
         input_entrenador_contraseña.delete(0, tk.END)
 
-tk.Button(tab_entrenador, text="Ingresar", command=ingresar_entrenador, width=30, height=2).pack(pady=20)
+tk.Button(tab_entrenador, text="Ingresar", command=ingresar_entrenador, width=20, height=2, fg="black").pack(pady=20)
 
-# LOGIN ADMIN
-
-tab_admin = tk.Frame(notebook)
+#login administrador
+tab_admin = tk.Frame(notebook, bg="white")
 notebook.add(tab_admin, text="Administrador")
 
-tk.Label(tab_admin, text="Login Administrador", font=("Arial", 16, "bold")).pack(pady=20)
-
-tk.Label(tab_admin, text="RUT:").pack()
+tk.Label(tab_admin, text="Login Administrador", font=("Helvetica", 16, "bold"), bg="white").pack(pady=20)
+tk.Label(tab_admin, text="RUT:", bg="white").pack()
 input_admin_rut = tk.Entry(tab_admin, width=30)
 input_admin_rut.pack(pady=5)
 
-tk.Label(tab_admin, text="Contraseña:").pack()
+tk.Label(tab_admin, text="Contraseña:", bg="white").pack(pady=(10, 0))
 input_admin_contraseña = tk.Entry(tab_admin, width=30, show="*")
 input_admin_contraseña.pack(pady=5)
 
@@ -165,28 +184,34 @@ def ingresar_admin():
     rut = input_admin_rut.get().strip()
     contraseña = input_admin_contraseña.get().strip()
 
-    valido_rut, msg_rut = validaciones.validar_rut(rut)
-    valido_contraseña, msg_contraseña = validaciones.validar_contraseña(contraseña)
-
-    if not valido_rut or not valido_contraseña:
-        errores = []
-        if not valido_rut: errores.append(msg_rut)
-        if not valido_contraseña: errores.append(msg_contraseña)
-        messagebox.showerror("Error", "\n".join(errores))
+    if not rut or not contraseña:
+        messagebox.showerror("Error", "Complete todos los campos")
         return
 
     existe, resultado = verificar_login(rut, contraseña, "administrador")
 
     if existe:
-        messagebox.showinfo("Éxito", f"Bienvenido {resultado.get('nombre', 'Administrador')}")
+        # Limpiar campos
+        input_admin_rut.delete(0, tk.END)
+        input_admin_contraseña.delete(0, tk.END)
+        
+        ventana.destroy()
+        
+        ventana_admin = tk.Tk()
+        ventana_admin.title("Gimnasio Mr. Fat - Panel Administrativo")
+        ventana_admin.geometry("700x600")
+        ventana_admin.configure(bg="white")
+        
+        frame_admin = tk.Frame(ventana_admin, bg="white")
+        frame_admin.pack(expand=True, fill="both")
+        
+        AdminGimnasio(frame_admin, resultado)
+        
+        ventana_admin.mainloop()
     else:
-        if resultado == "No existen":
-            messagebox.showerror("Error", "No existen administradores registrados")
-        else:
-            messagebox.showerror("Error", "RUT o contraseña incorrectos")
+        messagebox.showerror("Error", f"Error de acceso: {resultado}")
         input_admin_contraseña.delete(0, tk.END)
 
-tk.Button(tab_admin, text="Ingresar", command=ingresar_admin, width=30, height=2).pack(pady=20)
-
+tk.Button(tab_admin, text="Ingresar", command=ingresar_admin, width=20, height=2,fg="black").pack(pady=20)
 
 ventana.mainloop()

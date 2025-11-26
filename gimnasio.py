@@ -480,3 +480,38 @@ class Gimnacio:
             return False, mensaje
         
         return False, "Índice de ejercicio inválido"
+
+
+    def eliminar_suscripcion(self, id_suscripcion):
+        """
+        Elimina una suscripción por su ID.
+        Retorna (True, "mensaje") si se elimina, o (False, "mensaje de error") si falla.
+        """
+        archivo_suscripciones = "suscripciones.json"
+        if not os.path.exists(archivo_suscripciones):
+            return False, "No se encontró archivo de suscripciones."
+        
+        try:
+            with open(archivo_suscripciones, "r", encoding="utf-8") as f:
+                suscripciones = json.load(f)
+            
+            # Buscar la suscripción por ID
+            sus_a_eliminar = None
+            for sus in suscripciones:
+                if sus.get('id') == id_suscripcion:
+                    sus_a_eliminar = sus
+                    break
+            
+            if not sus_a_eliminar:
+                return False, "No se encontró la suscripción."
+            
+            suscripciones.remove(sus_a_eliminar)
+            
+            # Guardar los cambios
+            with open(archivo_suscripciones, "w", encoding="utf-8") as f:
+                json.dump(suscripciones, f, indent=4, ensure_ascii=False)
+            
+            return True, "Suscripción eliminada correctamente."
+        
+        except Exception as e:
+            return False, f"Error al eliminar suscripción: {str(e)}"
