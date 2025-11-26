@@ -3,7 +3,7 @@ from validaciones import Validaciones
 
 class Cliente:
     #definimos atributos
-    def __init__(self,nombre,rut,fecha_nacimiento,estatura,peso,estado_civil,direccion):
+    def __init__(self,nombre,rut,fecha_nacimiento,estatura,peso,estado_civil,direccion, contraseña):
         self.nombre = nombre
         self.rut = rut
         self.fecha_nacimiento = fecha_nacimiento
@@ -11,6 +11,7 @@ class Cliente:
         self.peso = peso
         self.estado_civil = estado_civil
         self.direccion = direccion
+        self.contraseña = contraseña
         self.fecha_registro = datetime.now().strftime("%Y-%m-%d")
     
     #metodos
@@ -39,9 +40,10 @@ class Cliente:
             "direccion":self.direccion,
             "imc":self.calcular_imc(),
             "rutina_mensual":self.determinar_rutina()[0],
-            "categoria_imc":self.determinar_rutina()[1]
+            "categoria_imc":self.determinar_rutina()[1],
+            "contraseña":self.contraseña
         }
-    def validar_datos(nombre,rut,fecha_nacimiento,estatura,peso,estado_civil,direccion):
+    def validar_datos(nombre,rut,fecha_nacimiento,estatura,peso,estado_civil,direccion,contraseña):
         errores= []
         advertencias = []
         #Se valida cada dato ocupando la funcion validaciones
@@ -68,6 +70,9 @@ class Cliente:
         elif "Advertencia" in mensaje:
             advertencias.append(mensaje)
         valido, mensaje = Validaciones.validar_estado_civil(estado_civil)
+        if not valido:
+            errores.append(mensaje)
+        valido,mensaje = Validaciones.validar_contraseña(contraseña)
         if not valido:
             errores.append(mensaje)
         valido, mensaje = Validaciones.validar_direccion(direccion)

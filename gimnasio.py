@@ -13,6 +13,7 @@ def crear_archivo():
         "clientes.json": [],
         "ejercicios.json": [],
         "entrenadores.json": [],
+        "historial_peso.json":[],
         "administradores.json":[
             {
                 "rut": "22297344-9",
@@ -22,7 +23,7 @@ def crear_archivo():
         ],
         "suscripciones.json": [],
         "turnos_entrenadores.json": [],
-        "horas_gimnacion.json": {
+        "horas_gimnasio.json": {
             "dias_semanas": {
                 "lunes": {"abre": "07:00", "cierra": "22:00", "activo": True},
                 "martes": {"abre": "07:00", "cierra": "22:00", "activo": True},
@@ -49,7 +50,7 @@ class Gimnacio:
         self.suscripciones = []
         self.historial_peso = []
         self.turno_entrenadores = []
-        self.horario_gimnacio = []
+        self.horario_gimnasio= {}
         crear_archivo()
         self.cargar_datos()
     
@@ -69,8 +70,8 @@ class Gimnacio:
                 self.historial_peso = json.load(f)
             with open("turnos_entrenadores.json", "r", encoding="utf-8") as f:
                 self.turno_entrenadores = json.load(f)
-            with open("horas_gimnacion.json", "r", encoding="utf-8") as f:
-                self.horario_gimnacio = json.load(f)
+            with open("horas_gimnasio.json", "r", encoding="utf-8") as f:
+                self.horario_gimnasio = json.load(f)
         except Exception as e:
             print(f"Error al cargar los datos {e}")
     
@@ -90,8 +91,8 @@ class Gimnacio:
                 json.dump(self.historial_peso, f, indent=4, ensure_ascii=False)
             with open("turnos_entrenadores.json", "w", encoding="utf-8") as f:
                 json.dump(self.turno_entrenadores, f, indent=4, ensure_ascii=False)
-            with open("horas_gimnacion.json", "w", encoding="utf-8") as f:
-                json.dump(self.horario_gimnacio, f, indent=4, ensure_ascii=False)
+            with open("horas_gimnasio.json", "w", encoding="utf-8") as f:
+                json.dump(self.horario_gimnasio, f, indent=4, ensure_ascii=False)
             return True, "Datos guardados correctamente"
         except Exception as e:
             return False, f"Error al guardar los datos {e}"
@@ -341,8 +342,8 @@ class Gimnacio:
     
     #gestion de horario del gimnacio
     def modificar_horario_gimnasio(self, dia_semana, hora_abre, hora_cierra, activo=True):
-        if dia_semana.lower() in self.horario_gimnacio["dias_semanas"]:
-            self.horario_gimnacio["dias_semanas"][dia_semana.lower()] = {
+        if dia_semana.lower() in self.horario_gimnasio["dias_semanas"]:
+            self.horario_gimnasio["dias_semanas"][dia_semana.lower()] = {
                 "abre": hora_abre,
                 "cierra": hora_cierra,
                 "activo": activo
@@ -354,14 +355,14 @@ class Gimnacio:
         return False, "Día de la semana inválido"
     
     def obtener_horario_gimnasio(self):
-        return self.horario_gimnacio
+        return self.horario_gimnasio
     
     def gimnasio_esta_abierto(self, dia_semana, hora):
         #ve si el gimnacio esta abierto o cerrado con el horario del gimnacio
-        if dia_semana.lower() not in self.horario_gimnacio["dias_semanas"]:
+        if dia_semana.lower() not in self.horario_gimnasio["dias_semanas"]:
             return False, "Día inválido"
         
-        horario_dia = self.horario_gimnacio["dias_semanas"][dia_semana.lower()]
+        horario_dia = self.horario_gimnasio["dias_semanas"][dia_semana.lower()]
         if not horario_dia["activo"]:
             return False, f"El gimnasio está cerrado los {dia_semana}"
         hora_dt = datetime.strptime(hora, "%H:%M")
@@ -479,7 +480,3 @@ class Gimnacio:
             return False, mensaje
         
         return False, "Índice de ejercicio inválido"
-
-if __name__ == "__main__":
-    gym = Gimnacio()
-    print("✅ Archivos creados correctamente")
