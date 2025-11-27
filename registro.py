@@ -76,19 +76,18 @@ def ingresar_usuario():
         if match:
             entrenador_asignado = match.group(1)
 
-    # Validar RUT duplicado PRIMERO
+    # Validación 1: Validar que el formato del RUT sea correcto
     validaciones = Validaciones()
-    validar_rut = validaciones.validar_rut(rut)
+    validar_rut_formato = validaciones.validar_rut(rut)
+    if not validar_rut_formato[0]:
+        messagebox.showerror("Error", validar_rut_formato[1])
+        return
     
-    if validar_rut[0]:  # Solo si el RUT es válido
-        archivo = "clientes.json"
-        if os.path.exists(archivo):
-            with open(archivo, "r", encoding="utf-8") as f:
-                clientes_existentes = json.load(f)
-                for cliente_existente in clientes_existentes:
-                    if cliente_existente.get("rut") == rut:
-                        messagebox.showerror("Error", f"Ya existe un cliente registrado con el RUT {rut}")
-                        return
+    # Validación 2: Validar que no esté duplicado en NINGUNO de los JSONs
+    validar_rut_unico = validaciones.validar_rut_unico(rut)
+    if not validar_rut_unico[0]:
+        messagebox.showerror("Error", validar_rut_unico[1])
+        return
 
     # Validar todos los campos usando la clase Cliente
     errores, advertencias = Cliente.validar_datos(

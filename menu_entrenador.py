@@ -11,6 +11,8 @@ class MenuEntrenador:
         self.frame = parent_frame
         self.entrenador_data = entrenador_data
         self.gimnasio = Gimnacio()
+        self.ventana_abierta = None  # Rastrear ventana abierta
+        self.botones = []  # Guardar referencias a los botones
         self.crear_widgets()
     
     def crear_widgets(self):
@@ -51,6 +53,7 @@ class MenuEntrenador:
             relief="flat"
         )
         btn_clientes.pack(fill="x", pady=10)
+        self.botones.append(btn_clientes)
         
         btn_ejercicios = tk.Button(
             frame_botones,
@@ -63,18 +66,7 @@ class MenuEntrenador:
             relief="flat"
         )
         btn_ejercicios.pack(fill="x", pady=10)
-        
-        btn_turnos = tk.Button(
-            frame_botones,
-            text="Ver Mis Turnos",
-            command=self.ver_turnos,
-            font=("Helvetica", 12, "bold"),
-            bg="#f39c12",
-            fg="white",
-            height=3,
-            relief="flat"
-        )
-        btn_turnos.pack(fill="x", pady=10)
+        self.botones.append(btn_ejercicios)
         
         btn_stats = tk.Button(
             frame_botones,
@@ -87,6 +79,7 @@ class MenuEntrenador:
             relief="flat"
         )
         btn_stats.pack(fill="x", pady=10)
+        self.botones.append(btn_stats)
         
         btn_cerrar = tk.Button(
             frame_botones,
@@ -99,6 +92,21 @@ class MenuEntrenador:
             relief="flat"
         )
         btn_cerrar.pack(fill="x", pady=10)
+    
+    def _bloquear_botones(self):
+        """Deshabilita todos los botones excepto cerrar sesión"""
+        for boton in self.botones:
+            boton.config(state="disabled")
+    
+    def _desbloquear_botones(self):
+        """Habilita todos los botones"""
+        for boton in self.botones:
+            boton.config(state="normal")
+    
+    def _ventana_cerrada(self):
+        """Callback cuando se cierra una ventana emergente"""
+        self.ventana_abierta = None
+        self._desbloquear_botones()
     
     def obtener_clientes_desde_json(self):
         """NUEVO MÉTODO: Obtiene clientes asignados desde el JSON"""
@@ -143,6 +151,11 @@ class MenuEntrenador:
             return {}
     
     def ver_mis_clientes(self):
+        # Verificar si ya hay una ventana abierta
+        if self.ventana_abierta is not None:
+            messagebox.showwarning("Ventana abierta", "Ya tienes una ventana abierta. Ciérrala primero.")
+            return
+        
         # PRIMERO intenta obtener clientes desde el JSON
         clientes_json = self.obtener_clientes_desde_json()
         
@@ -159,6 +172,13 @@ class MenuEntrenador:
         ventana.title("Mis Clientes")
         ventana.geometry("700x500")
         ventana.configure(bg="white")
+        
+        # Guardar referencia y bloquear botones
+        self.ventana_abierta = ventana
+        self._bloquear_botones()
+        
+        # Registrar callback al cerrar ventana
+        ventana.protocol("WM_DELETE_WINDOW", lambda: self._cerrar_ventana(ventana))
         
         tk.Label(
             ventana,
@@ -272,6 +292,11 @@ class MenuEntrenador:
                  font=("Helvetica", 11, "bold")).pack(pady=20)
     
     def ver_ejercicios(self):
+        # Verificar si ya hay una ventana abierta
+        if self.ventana_abierta is not None:
+            messagebox.showwarning("Ventana abierta", "Ya tienes una ventana abierta. Ciérrala primero.")
+            return
+        
         ejercicios = self.gimnasio.obtener_ejercicios_por_entrenador(
             self.entrenador_data.get('nombre')
         )
@@ -280,6 +305,13 @@ class MenuEntrenador:
         ventana.title("Ejercicios Supervisados")
         ventana.geometry("700x500")
         ventana.configure(bg="white")
+        
+        # Guardar referencia y bloquear botones
+        self.ventana_abierta = ventana
+        self._bloquear_botones()
+        
+        # Registrar callback al cerrar ventana
+        ventana.protocol("WM_DELETE_WINDOW", lambda: self._cerrar_ventana(ventana))
         
         tk.Label(
             ventana,
@@ -340,64 +372,23 @@ class MenuEntrenador:
             bg="white"
         ).pack(pady=10)
     
-    def ver_turnos(self):
-        turnos = self.gimnasio.obtener_turnos_entrenador(self.entrenador_data.get('rut'))
-        
-        ventana = tk.Toplevel(self.frame)
-        ventana.title("Mis Turnos")
-        ventana.geometry("500x400")
-        ventana.configure(bg="white")
-        
-        tk.Label(
-            ventana,
-            text="Horario de Trabajo",
-            font=("Helvetica", 16, "bold"),
-            bg="white"
-        ).pack(pady=20)
-        
-        if not turnos:
-            tk.Label(
-                ventana,
-                text="No tienes turnos asignados",
-                font=("Helvetica", 12),
-                bg="white",
-                fg="#666"
-            ).pack(pady=20)
+    def ver_estadisticas(self):
+        # Verificar si ya hay una ventana abierta
+        if self.ventana_abierta is not None:
+            messagebox.showwarning("Ventana abierta", "Ya tienes una ventana abierta. Ciérrala primero.")
             return
         
-        frame_turnos = tk.Frame(ventana, bg="white")
-        frame_turnos.pack(expand=True, padx=20, pady=10)
-        
-        for turno in turnos:
-            card = tk.Frame(frame_turnos, bg="#f0f0f0", relief="solid", bd=1)
-            card.pack(fill="x", pady=5)
-            
-            info = f"{turno.get('dia_semana', 'N/A').upper()}: {turno.get('hora_inicio', 'N/A')} - {turno.get('hora_fin', 'N/A')} ({turno.get('horas_trabajo', 0):.1f} horas)"
-            
-            tk.Label(
-                card,
-                text=info,
-                font=("Helvetica", 11),
-                bg="#f0f0f0"
-            ).pack(pady=10, padx=10)
-        
-        total_horas = self.gimnasio.calcular_horas_semanales_entrenador(
-            self.entrenador_data.get('rut')
-        )
-        
-        tk.Label(
-            ventana,
-            text=f"Total horas semanales: {total_horas}",
-            font=("Helvetica", 12, "bold"),
-            bg="white",
-            fg="#50c878"
-        ).pack(pady=20)
-    
-    def ver_estadisticas(self):
         ventana = tk.Toplevel(self.frame)
         ventana.title("Mis Estadísticas")
         ventana.geometry("500x400")
         ventana.configure(bg="white")
+        
+        # Guardar referencia y bloquear botones
+        self.ventana_abierta = ventana
+        self._bloquear_botones()
+        
+        # Registrar callback al cerrar ventana
+        ventana.protocol("WM_DELETE_WINDOW", lambda: self._cerrar_ventana(ventana))
         
         tk.Label(
             ventana,
@@ -415,19 +406,12 @@ class MenuEntrenador:
         )
         total_ejercicios = len(ejercicios)
         
-        turnos = self.gimnasio.obtener_turnos_entrenador(self.entrenador_data.get('rut'))
-        total_horas = self.gimnasio.calcular_horas_semanales_entrenador(
-            self.entrenador_data.get('rut')
-        )
-        
         frame_stats = tk.Frame(ventana, bg="white")
         frame_stats.pack(expand=True, padx=40)
         
         stats = [
             ("Clientes Asignados", total_clientes, "#4a90e2"),
             ("Ejercicios Supervisados", total_ejercicios, "#50c878"),
-            ("Turnos Asignados", len(turnos), "#f39c12"),
-            ("Horas Semanales", f"{total_horas:.1f}", "#9b59b6")
         ]
         
         for titulo, valor, color in stats:
@@ -449,6 +433,11 @@ class MenuEntrenador:
                 bg=color,
                 fg="white"
             ).pack(pady=5)
+    
+    def _cerrar_ventana(self, ventana):
+        """Cierra la ventana y desbloquea los botones"""
+        ventana.destroy()
+        self._ventana_cerrada()
     
     def cerrar_sesion(self):
         if messagebox.askyesno("Cerrar Sesión", "¿Desea cerrar sesión?"):

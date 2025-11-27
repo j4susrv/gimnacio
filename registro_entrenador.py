@@ -92,20 +92,21 @@ class AppEntrenador:
         estatura = self.input_estatura.get().strip()
         peso = self.input_peso.get().strip()
 
-        # Validar RUT duplicado PRIMERO
-        archivo = "entrenadores.json"
-        if os.path.exists(archivo):
-            try:
-                with open(archivo, "r") as f:
-                    entrenadores_existentes = json.load(f)
-                    for entrenador in entrenadores_existentes:
-                        if entrenador.get("rut") == rut:
-                            messagebox.showerror("Error", f"Ya existe un entrenador registrado con el RUT {rut}")
-                            return
-            except:
-                pass
+        # Validación 1: Validar que el formato del RUT sea correcto
+        validaciones = Validaciones()
+        validar_rut_formato = validaciones.validar_rut(rut)
+        if not validar_rut_formato[0]:
+            messagebox.showerror("Error", validar_rut_formato[1])
+            return
+        
+        # Validación 2: Validar que no esté duplicado en NINGUNO de los JSONs
+        validar_rut_unico = validaciones.validar_rut_unico(rut)
+        if not validar_rut_unico[0]:
+            messagebox.showerror("Error", validar_rut_unico[1])
+            return
 
-        errores, advertencias = Entrenador.validar_datos(nombre,fecha,rut,estatura,peso,contraseña)
+        # Validar datos del entrenador
+        errores, advertencias = Entrenador.validar_datos(nombre, fecha, rut, estatura, peso, contraseña)
 
         if errores:
             messagebox.showerror("Errores", "\n".join(errores))
@@ -119,7 +120,7 @@ class AppEntrenador:
             rut=rut,
             estatura=estatura,
             peso=peso,
-            especialidades=[],  # vacía al inicio
+            especialidades=[],
             contraseña=contraseña
         )
 
@@ -129,6 +130,7 @@ class AppEntrenador:
 
         # Guardar en JSON
         datos = []
+        archivo = "entrenadores.json"
         if os.path.exists(archivo):
             try:
                 with open(archivo, "r") as f:

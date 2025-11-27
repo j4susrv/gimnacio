@@ -1,4 +1,4 @@
-import re
+import re, os, json
 from datetime import datetime
 class Validaciones:
 
@@ -63,6 +63,33 @@ class Validaciones:
             return False,"El digito verificador del RUT es erroneo"
         return True, "RUT verificado" #Si el codigo verificador es correcto, devuelve Rut verificado
     @staticmethod
+    def validar_rut_unico(rut):
+        """
+        Valida que el RUT no esté duplicado en NINGUNO de los tres JSONs
+        Retorna (es_unico, mensaje)
+        """
+        archivos_a_revisar = ["clientes.json", "entrenadores.json", "administradores.json"]
+        
+        for archivo in archivos_a_revisar:
+            if os.path.exists(archivo):
+                try:
+                    with open(archivo, "r", encoding="utf-8") as f:
+                        datos = json.load(f)
+                        
+                        # Validar si es una lista o un diccionario
+                        if isinstance(datos, list):
+                            for registro in datos:
+                                if registro.get("rut") == rut:
+                                    return False, f"El RUT {rut} ya existe en {archivo}"
+                        elif isinstance(datos, dict):
+                            if datos.get("rut") == rut:
+                                return False, f"El RUT {rut} ya existe en {archivo}"
+                except Exception as e:
+                    print(f"Error al revisar {archivo}: {e}")
+                    continue
+        
+        return True, "RUT disponible"
+    @staticmethod
     def validar_fecha_nacimiento(fecha_str):
         if not fecha_str or fecha_str.strip()==" ": #Verifica si la fecha vacia o no
             return False, "Fecha de nacimiento no puede estar vacia"
@@ -93,6 +120,17 @@ class Validaciones:
             return True, "La fecha es valida"
         except Exception as e:
             return False,f"Error en la fecha {str(e)}"
+    @staticmethod
+    def validar_fecha(dia,mes,anio):
+        if mes < 1 or mes >12:
+            return False
+        dia_mes = [31,28,31,30,31,30,31,31,30,31,30,31]
+        #se valida si es un año bisiesto
+        if (anio % 4 == 0 and anio % 100!=0) or (anio % 400 == 0):
+            dia_mes[1] = 29
+        #se valida el dia maximo
+        if dia > dia_mes[mes -1]:
+            return False
     @staticmethod
     def validar_estatura(estatura):
         try:

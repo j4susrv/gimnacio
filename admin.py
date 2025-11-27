@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import subprocess
 import sys
+import os
 from gimnasio import Gimnacio
 from cliente import Cliente
 from entrenador import Entrenador
@@ -11,9 +12,56 @@ class AdminGimnasio:
         self.frame = parent_frame
         self.admin_data = admin_data
         self.gimnasio = Gimnacio()
-        self.ventanas_abiertas = {}  # Diccionario para rastrear ventanas abiertas
-        self.botones = {}  # Diccionario para almacenar referencias a los botones
+        self.ventanas_abiertas = {}
+        self.botones = {}
+        # NUEVO: Guarda la última modificación de los archivos JSON
+        self.ultima_modificacion_clientes = self.obtener_fecha_modificacion("clientes.json")
+        self.ultima_modificacion_entrenadores = self.obtener_fecha_modificacion("entrenadores.json")
         self.crear_widgets()
+        # NUEVO: Inicia el monitoreo automático de cambios
+        self.iniciar_monitoreo_cambios()
+
+    def obtener_fecha_modificacion(self, archivo):
+        """Obtiene la fecha de última modificación de un archivo"""
+        try:
+            if os.path.exists(archivo):
+                return os.path.getmtime(archivo)
+            return 0
+        except:
+            return 0
+
+    def iniciar_monitoreo_cambios(self):
+        """Monitorea cambios en los archivos JSON cada 1 segundo"""
+        self.verificar_cambios_archivos()
+
+    def verificar_cambios_archivos(self):
+        """Verifica si los archivos JSON han cambiado y actualiza las ventanas"""
+        try:
+            # Verificar clientes.json
+            modificacion_actual_clientes = self.obtener_fecha_modificacion("clientes.json")
+            if modificacion_actual_clientes != self.ultima_modificacion_clientes:
+                self.ultima_modificacion_clientes = modificacion_actual_clientes
+                # Si la ventana de clientes está abierta, actualizarla
+                if 'clientes' in self.ventanas_abiertas:
+                    ventana_clientes = self.ventanas_abiertas['clientes']
+                    if ventana_clientes.winfo_exists() and hasattr(ventana_clientes, 'scrollable_frame'):
+                        self.actualizar_lista_clientes(ventana_clientes.scrollable_frame)
+
+            # Verificar entrenadores.json
+            modificacion_actual_entrenadores = self.obtener_fecha_modificacion("entrenadores.json")
+            if modificacion_actual_entrenadores != self.ultima_modificacion_entrenadores:
+                self.ultima_modificacion_entrenadores = modificacion_actual_entrenadores
+                # Si la ventana de entrenadores está abierta, actualizarla
+                if 'entrenadores' in self.ventanas_abiertas:
+                    ventana_entrenadores = self.ventanas_abiertas['entrenadores']
+                    if ventana_entrenadores.winfo_exists() and hasattr(ventana_entrenadores, 'scrollable_frame'):
+                        self.actualizar_lista_entrenadores(ventana_entrenadores.scrollable_frame)
+
+        except Exception as e:
+            print(f"Error al verificar cambios: {e}")
+
+        # Reprogramar la verificación cada 1000ms (1 segundo)
+        self.frame.after(1000, self.verificar_cambios_archivos)
 
     def crear_widgets(self):
         # Título
@@ -106,7 +154,7 @@ class AdminGimnasio:
     def abrir_registro(self):
         # Verificar si ya hay una ventana de registro abierta
         if 'registro' in self.ventanas_abiertas and self.ventanas_abiertas['registro'].winfo_exists():
-            self.ventanas_abiertas['registro'].lift()  # Traer al frente
+            self.ventanas_abiertas['registro'].lift()
             return
 
         try:
@@ -118,12 +166,12 @@ class AdminGimnasio:
             
             # Crear ventana invisible para monitorear el proceso
             ventana_monitor = tk.Toplevel(self.frame)
-            ventana_monitor.withdraw()  # Ocultar ventana
+            ventana_monitor.withdraw()
             self.ventanas_abiertas['registro'] = ventana_monitor
             
             # Monitorear el proceso
             def verificar_proceso():
-                if proceso.poll() is not None:  # Proceso terminado
+                if proceso.poll() is not None:
                     self.desbloquear_botones()
                     if 'registro' in self.ventanas_abiertas:
                         del self.ventanas_abiertas['registro']
@@ -162,7 +210,7 @@ class AdminGimnasio:
     def ver_clientes(self):
         # Verificar si ya hay una ventana de clientes abierta
         if 'clientes' in self.ventanas_abiertas and self.ventanas_abiertas['clientes'].winfo_exists():
-            self.ventanas_abiertas['clientes'].lift()  # Traer al frente
+            self.ventanas_abiertas['clientes'].lift()
             return
 
         if not self.gimnasio.clientes:
@@ -356,7 +404,7 @@ class AdminGimnasio:
     def ver_entrenadores(self):
         # Verificar si ya hay una ventana de entrenadores abierta
         if 'entrenadores' in self.ventanas_abiertas and self.ventanas_abiertas['entrenadores'].winfo_exists():
-            self.ventanas_abiertas['entrenadores'].lift()  # Traer al frente
+            self.ventanas_abiertas['entrenadores'].lift()
             return
 
         if not self.gimnasio.entrenadores:
@@ -537,7 +585,7 @@ class AdminGimnasio:
                 # Abrir login.py
                 subprocess.Popen([sys.executable, "login.py"])
                 
-                # Cerrar la ventana principal (buscar la ventana root)
+                # Cerrar la ventana principal
                 root = self.frame.winfo_toplevel()
                 root.destroy()
                 
