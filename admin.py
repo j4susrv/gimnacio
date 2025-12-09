@@ -3,22 +3,23 @@ from tkinter import messagebox, ttk
 import subprocess
 import sys
 import os
-from gimnasio import Gimnacio
+from gimnasio import Gimnasio
 from cliente import Cliente
 from entrenador import Entrenador
+from validaciones import Validaciones
 
 class AdminGimnasio:
     def __init__(self, parent_frame, admin_data):
         self.frame = parent_frame
         self.admin_data = admin_data
-        self.gimnasio = Gimnacio()
+        self.gimnasio = Gimnasio()
         self.ventanas_abiertas = {}
         self.botones = {}
-        # NUEVO: Guarda la última modificación de los archivos JSON
+        # Guarda la última modificación de los archivos JSON
         self.ultima_modificacion_clientes = self.obtener_fecha_modificacion("clientes.json")
         self.ultima_modificacion_entrenadores = self.obtener_fecha_modificacion("entrenadores.json")
         self.crear_widgets()
-        # NUEVO: Inicia el monitoreo automático de cambios
+        #  Inicia el monitoreo automático de cambios
         self.iniciar_monitoreo_cambios()
 
     def obtener_fecha_modificacion(self, archivo):
@@ -64,6 +65,23 @@ class AdminGimnasio:
         self.frame.after(1000, self.verificar_cambios_archivos)
 
     def crear_widgets(self):
+        # BARRA DE ESTADO (arriba de todo)
+        esta_abierto, mensaje = self.gimnasio.obtener_estado_actual()
+        color = "#27ae60" if esta_abierto else "#e74c3c"
+        
+        self.label_estado = tk.Label(
+            self.frame,
+            text=mensaje,
+            font=("Helvetica", 11),
+            bg=color,
+            fg="white",
+            pady=8
+        )
+        self.label_estado.pack(fill="x")
+        
+        # Actualizar cada minuto
+        self.actualizar_estado_gimnasio()
+        
         # Título
         titulo = tk.Label(
             self.frame,
@@ -150,40 +168,71 @@ class AdminGimnasio:
         """Desbloquea todos los botones"""
         for boton in self.botones.values():
             boton.config(state="normal")
+    def actualizar_estado_gimnasio(self):
+        """Actualiza el estado cada minuto"""
+        try:
+            esta_abierto, mensaje = self.gimnasio.obtener_estado_actual()
+            color = "#27ae60" if esta_abierto else "#e74c3c"
+            self.label_estado.config(text=mensaje, bg=color)
+        except:
+            pass
+        
+        self.frame.after(60000, self.actualizar_estado_gimnasio)
 
     def abrir_registro(self):
-        # Verificar si ya hay una ventana de registro abierta
-        if 'registro' in self.ventanas_abiertas and self.ventanas_abiertas['registro'].winfo_exists():
-            self.ventanas_abiertas['registro'].lift()
-            return
+            # Verificar si ya hay una ventana de registro abierta
+            if 'registro' in self.ventanas_abiertas and self.ventanas_abiertas['registro'].winfo_exists():
+                self.ventanas_abiertas['registro'].lift()
+                return
 
-        try:
-            # Bloquear botones
-            self.bloquear_botones('registrar')
-            
-            # Abrir registro.py
-            proceso = subprocess.Popen([sys.executable, "registro.py"])
-            
-            # Crear ventana invisible para monitorear el proceso
-            ventana_monitor = tk.Toplevel(self.frame)
-            ventana_monitor.withdraw()
-            self.ventanas_abiertas['registro'] = ventana_monitor
-            
-            # Monitorear el proceso
-            def verificar_proceso():
-                if proceso.poll() is not None:
-                    self.desbloquear_botones()
-                    if 'registro' in self.ventanas_abiertas:
-                        del self.ventanas_abiertas['registro']
-                    ventana_monitor.destroy()
-                else:
-                    ventana_monitor.after(500, verificar_proceso)
-            
-            verificar_proceso()
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo abrir el registro: {e}")
-            self.desbloquear_botones()
+            try:
+                # Bloquear botones
+                self.bloquear_botones('registrar')
+                
+                # Abrir registro.py
+                proceso = subprocess.Popen([sys.executable, "registro.py"])
+                
+                # Crear ventana invisible para monitorear el proceso
+                ventana_monitor = tk.Toplevel(self.frame)
+                ventana_monitor.withdraw()
+                self.ventanas_abiertas['registro'] = ventana_monitor
+                
+                # Monitorear el proceso
+                def verificar_proceso():
+                    if proceso.poll() is not None:
+                        # El proceso terminó, actualizar datos
+                        self.desbloquear_botones()
+                        
+                        # NUEVO: Actualizar las fechas de modificación
+                        self.ultima_modificacion_clientes = self.obtener_fecha_modificacion("clientes.json")
+                        self.ultima_modificacion_entrenadores = self.obtener_fecha_modificacion("entrenadores.json")
+                        
+                        # NUEVO: Recargar datos del gimnasio
+                        self.gimnasio = Gimnasio()
+                        
+                        # NUEVO: Si la ventana de clientes está abierta, actualizarla inmediatamente
+                        if 'clientes' in self.ventanas_abiertas:
+                            ventana_clientes = self.ventanas_abiertas['clientes']
+                            if ventana_clientes.winfo_exists() and hasattr(ventana_clientes, 'scrollable_frame'):
+                                self.actualizar_lista_clientes(ventana_clientes.scrollable_frame)
+                        
+                        # NUEVO: Si la ventana de entrenadores está abierta, actualizarla inmediatamente
+                        if 'entrenadores' in self.ventanas_abiertas:
+                            ventana_entrenadores = self.ventanas_abiertas['entrenadores']
+                            if ventana_entrenadores.winfo_exists() and hasattr(ventana_entrenadores, 'scrollable_frame'):
+                                self.actualizar_lista_entrenadores(ventana_entrenadores.scrollable_frame)
+                        
+                        if 'registro' in self.ventanas_abiertas:
+                            del self.ventanas_abiertas['registro']
+                        ventana_monitor.destroy()
+                    else:
+                        ventana_monitor.after(500, verificar_proceso)
+                
+                verificar_proceso()
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo abrir el registro: {e}")
+                self.desbloquear_botones()
 
     def actualizar_lista_clientes(self, scrollable_frame):
         """Actualiza la lista de clientes en la interfaz"""
@@ -192,7 +241,7 @@ class AdminGimnasio:
             widget.destroy()
         
         # Recargar datos del gimnasio
-        self.gimnasio = Gimnacio()
+        self.gimnasio = Gimnasio()
         
         # Mostrar cada cliente
         if self.gimnasio.clientes:
@@ -229,7 +278,7 @@ class AdminGimnasio:
         def al_cerrar():
             self.desbloquear_botones()
             if 'clientes' in self.ventanas_abiertas:
-                del self.ventanas_abiertas['clientes']
+                del self.ventanas_abiertas['clientes'] #lo elimina elimando elementos especificos
             ventana.destroy()
 
         ventana.protocol("WM_DELETE_WINDOW", al_cerrar)
@@ -330,17 +379,46 @@ class AdminGimnasio:
             estatura = entry_estatura.get().strip()
             contraseña = entry_contraseña.get().strip()
 
+            # Validación 1: Campos vacíos
             if not nombre or not peso or not estatura or not contraseña:
                 messagebox.showerror("Error", "Complete todos los campos")
                 return
 
-            try:
-                peso = float(peso)
-                estatura = float(estatura)
-            except ValueError:
-                messagebox.showerror("Error", "Peso y estatura deben ser números")
+            # Validación 2: Validar nombre
+            es_valido, mensaje = Validaciones.validar_nombre(nombre)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
                 return
 
+            # Validación 3: Validar peso
+            es_valido, mensaje = Validaciones.validar_peso(peso)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+            peso = float(peso)  # Convertir después de validar
+
+            # Validación 4: Validar estatura
+            es_valido, mensaje = Validaciones.validar_estatura(estatura)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+            estatura = float(estatura)  # Convertir después de validar
+
+            # Validación 5: Validar IMC (después de tener peso y estatura validados)
+            estatura_m = estatura / 100
+            imc = round(peso / (estatura_m ** 2), 2)
+            
+            if imc < 13:
+                messagebox.showerror("Error", f"IMC muy bajo ({imc}). El IMC no puede ser menor a 13. Verifique el peso y la estatura.")
+                return
+
+            # Validación 6: Validar contraseña
+            es_valido, mensaje = Validaciones.validar_contraseña(contraseña)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+
+            # Si todas las validaciones pasan, proceder a modificar
             cliente_modificado = Cliente(
                 nombre=nombre,
                 rut=cliente.get('rut'),
@@ -386,7 +464,7 @@ class AdminGimnasio:
             widget.destroy()
         
         # Recargar datos del gimnasio
-        self.gimnasio = Gimnacio()
+        self.gimnasio = Gimnasio()
         
         # Mostrar cada entrenador
         if self.gimnasio.entrenadores:
@@ -525,17 +603,46 @@ class AdminGimnasio:
             estatura = entry_estatura.get().strip()
             contraseña = entry_contraseña.get().strip()
 
+            # Validación 1: Campos vacíos
             if not nombre or not peso or not estatura or not contraseña:
                 messagebox.showerror("Error", "Complete todos los campos")
                 return
 
-            try:
-                peso = float(peso)
-                estatura = float(estatura)
-            except ValueError:
-                messagebox.showerror("Error", "Peso y estatura deben ser números")
+            # Validación 2: Validar nombre
+            es_valido, mensaje = Validaciones.validar_nombre(nombre)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
                 return
 
+            # Validación 3: Validar peso
+            es_valido, mensaje = Validaciones.validar_peso(peso)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+            peso = float(peso)
+
+            # Validación 4: Validar estatura
+            es_valido, mensaje = Validaciones.validar_estatura(estatura)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+            estatura = float(estatura)
+
+            # Validación 5: Validar IMC
+            estatura_m = estatura / 100
+            imc = round(peso / (estatura_m ** 2), 2)
+            
+            if imc < 13:
+                messagebox.showerror("Error", f"IMC muy bajo ({imc}). El IMC no puede ser menor a 13. Verifique el peso y la estatura.")
+                return
+
+            # Validación 6: Validar contraseña
+            es_valido, mensaje = Validaciones.validar_contraseña(contraseña)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+
+            # Si todas las validaciones pasan, proceder a modificar
             entrenador_modificado = Entrenador(
                 nombre=nombre,
                 fecha_nacimiento=entrenador.get('fecha_nacimiento'),

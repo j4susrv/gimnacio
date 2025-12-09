@@ -2,20 +2,23 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime, timedelta
 from suscripcion import Suscripcion
-from gimnasio import Gimnacio
+from gimnasio import Gimnasio
 from ejercicios import Ejercicio
 from cliente import Cliente
-from entrenador import Entrenador
+from validaciones import Validaciones
+from entrenador import Entrenador,TurnoEntrenador
 import subprocess
 import sys
 import json
 import os
 
+#AGREGAR QUE EL USUARIO PUEDA VER LA DISPONIBILIDAD DE EL ENTRENADOR
+#Se define el menu de cliente
 class MenuCliente:
     def __init__(self, parent_frame, cliente_data):
         self.frame = parent_frame
         self.cliente_data = cliente_data
-        self.gimnasio = Gimnacio()
+        self.gimnasio = Gimnasio()
         self.ventanas_abiertas = {}  # Diccionario para rastrear ventanas abiertas
         self.botones = {}  # Diccionario para almacenar referencias a los botones
         self.crear_menu()
@@ -27,6 +30,23 @@ class MenuCliente:
         
         # Configurar el frame principal
         self.frame.configure(bg="white")
+
+        # BARRA DE ESTADO (arriba de todo)
+        esta_abierto, mensaje = self.gimnasio.obtener_estado_actual()
+        color = "#27ae60" if esta_abierto else "#e74c3c"
+        
+        self.label_estado = tk.Label(
+            self.frame,
+            text=mensaje,
+            font=("Helvetica", 11),
+            bg=color,
+            fg="white",
+            pady=8
+        )
+        self.label_estado.pack(fill="x")
+        
+        # Actualizar cada minuto
+        self.actualizar_estado_gimnasio()
         
         # Título de bienvenida
         nombre_cliente = self.cliente_data.get('nombre', 'Cliente')
@@ -36,21 +56,54 @@ class MenuCliente:
             font=("Helvetica", 18, "bold"), 
             bg="white",
             fg="#333"
-        ).pack(pady=30)
+        ).pack(pady=30) #se define estructura visual
         
         # Mostrar información del entrenador asignado si existe
-        entrenador_info = self.obtener_info_entrenador_asignado()
+        entrenador_info = self.obtener_info_entrenador_completa()
         if entrenador_info:
             info_frame = tk.Frame(self.frame, bg="#e8f4fd", relief="solid", bd=1)
             info_frame.pack(fill="x", padx=40, pady=10)
             
             tk.Label(
                 info_frame,
-                text=f"🏋️ Entrenador: {entrenador_info}",
-                font=("Helvetica", 11, "bold"),
+                text=f"🏋️ {entrenador_info['nombre']}",
+                font=("Helvetica", 12, "bold"),
                 bg="#e8f4fd",
                 fg="#2c3e50"
-            ).pack(pady=8)
+            ).pack(pady=(8, 2))
+            
+            tk.Label(
+                info_frame,
+                text=f"Especialidades: {entrenador_info['especialidades']}",
+                font=("Helvetica", 10),
+                bg="#e8f4fd",
+                fg="#34495e"
+            ).pack(pady=2)
+            
+            # Estado de disponibilidad
+            disponible = entrenador_info['disponible']
+            estado_color = "#27ae60" if disponible else "#e74c3c"
+            estado_texto = "🟢 Disponible ahora" if disponible else "🔴 No disponible"
+            
+            tk.Label(
+                info_frame,
+                text=estado_texto,
+                font=("Helvetica", 10, "bold"),
+                bg="#e8f4fd",
+                fg=estado_color
+            ).pack(pady=2)
+            
+            # Botón para ver horarios
+            tk.Button(
+                info_frame,
+                text="📅 Ver Horarios",
+                command=self.ver_horarios_entrenador,
+                bg="#3498db",
+                fg="white",
+                font=("Helvetica", 9, "bold"),
+                relief="flat",
+                cursor="hand2"
+            ).pack(pady=(5, 8))
         
         # Frame para los botones
         frame_btn = tk.Frame(self.frame, bg="white")
@@ -83,6 +136,58 @@ class MenuCliente:
             # Guardar referencia del botón si tiene key
             if key:
                 self.botones[key] = btn
+    def actualizar_estado_gimnasio(self):
+        """Actualiza el estado cada minuto"""
+        try:
+            esta_abierto, mensaje = self.gimnasio.obtener_estado_actual()
+            color = "#27ae60" if esta_abierto else "#e74c3c"
+            self.label_estado.config(text=mensaje, bg=color)
+        except:
+            pass
+        
+        self.frame.after(60000, self.actualizar_estado_gimnasio)
+    def obtener_info_entrenador_completa(self):
+        """Obtiene información completa del entrenador incluyendo disponibilidad"""
+        rut_cliente = self.cliente_data.get('rut')
+        if not rut_cliente:
+            print("No se encontró RUT del cliente")
+            return None
+        
+        
+            # Leer clientes para obtener el RUT del entrenador asignado
+        with open("clientes.json", "r", encoding="utf-8") as f:
+            clientes = json.load(f)
+            
+        rut_entrenador = None
+        for cliente in clientes:
+            if cliente.get('rut') == rut_cliente:
+                rut_entrenador = cliente.get('entrenador_asignado')
+                print(f"RUT entrenador asignado: {rut_entrenador}")
+                break
+            
+        if not rut_entrenador:
+            print("No hay entrenador asignado")
+            return None
+            
+            # Leer entrenadores para obtener la información completa
+        with open("entrenadores.json", "r", encoding="utf-8") as f:
+            entrenadores = json.load(f)
+            
+        for entrenador in entrenadores:
+            if entrenador.get('rut') == rut_entrenador:
+                nombre = entrenador.get('nombre', 'Entrenador')
+                especialidades = ', '.join(entrenador.get('especialidades', []))
+                turnos = entrenador.get('turnos', [])
+                disponible = TurnoEntrenador.esta_disponible(rut_entrenador, entrenadores)
+                
+                return {
+                    'rut': rut_entrenador,
+                    'nombre': nombre,
+                    'especialidades': especialidades if especialidades else 'Sin especialidades',
+                    'disponible': disponible,
+                    'turnos': turnos
+                }
+        return None
     
     def obtener_info_entrenador_asignado(self):
         rut_cliente = self.cliente_data.get('rut')
@@ -109,23 +214,30 @@ class MenuCliente:
         return None
     
     def obtener_nombre_entrenador(self, rut_entrenador):
+        """Obtiene el nombre y estado del entrenador para mostrar en 'Mis Datos'"""
         archivo_entrenadores = "entrenadores.json"
         if not os.path.exists(archivo_entrenadores):
-            return "Entrenador (información no disponible)"
+            return "Entrenador (archivo no encontrado)"
         
-        try:
+        try:          
             with open(archivo_entrenadores, "r", encoding="utf-8") as f:
                 entrenadores = json.load(f)
             
             for entrenador in entrenadores:
                 if entrenador.get('rut') == rut_entrenador:
                     nombre = entrenador.get('nombre', 'Entrenador')
-                    especialidades = ', '.join(entrenador.get('especialidades', []))
-                    return f"{nombre} - {especialidades}"
+                    especialidades_lista = entrenador.get('especialidades', [])
+                    especialidades = ', '.join(especialidades_lista) if especialidades_lista else 'Sin especialidades'
+                    
+                    # Verificar disponibilidad
+                    disponible = TurnoEntrenador.esta_disponible(rut_entrenador, entrenadores)
+                    estado = "🟢 Disponible" if disponible else "🔴 No disponible"
+                    
+                    return f"{nombre} - {especialidades} ({estado})"
         except Exception as e:
-            print(f"Error al obtener nombre del entrenador: {e}")
+            print(f"Error en obtener_nombre_entrenador: {e}")
         
-        return "Entrenador (información no disponible)"
+        return "Entrenador (error al cargar información)"
     
     def bloquear_botones(self, excepto=None):
         for nombre, boton in self.botones.items():
@@ -153,14 +265,18 @@ class MenuCliente:
             if nombre_ventana in self.ventanas_abiertas:
                 del self.ventanas_abiertas[nombre_ventana]
             ventana.destroy()
-        
-        ventana.protocol("WM_DELETE_WINDOW", al_cerrar)
+            
+        # Protocol: Define el comportamiento cuando se cierra la ventana con la X
+        # Sin esto, la ventana se cierra pero los botones quedan bloqueados
+        # Con esto, primero ejecuta al_cerrar() (desbloquea botones, limpia variables)
+        # y LUEGO cierra la ventana correctamente
+        ventana.protocol("WM_DELETE_WINDOW", al_cerrar) 
     
     def ver_suscripcion(self):
-        if self.verificar_ventana_abierta('ver_suscripcion'):
+        if self.verificar_ventana_abierta('ver_suscripcion'): 
             return
         
-        self.gimnasio = Gimnacio()
+        self.gimnasio = Gimnasio()
         existe, sus = self.gimnasio.buscar_suscripcion_activa(self.cliente_data.get('rut'))
         
         v = tk.Toplevel(self.frame)
@@ -180,17 +296,40 @@ class MenuCliente:
         frame_info.pack(expand=True, fill="both", padx=30, pady=20)
         
         if existe:
+            # Parsear fecha de inicio (puede estar en formato DD-MM-YYYY o YYYY-MM-DD)
             try:
-                fecha_inicio = datetime.strptime(sus.get('fecha_inicio', ''), '%Y-%m-%d')
-                dias = sus.get('dias_restantes', 0)
-                fecha_vencimiento = fecha_inicio + timedelta(days=dias)
+                fecha_inicio_str = sus.get('fecha_inicio', '')
+                # Intentar formato chileno primero
+                try:
+                    fecha_inicio = datetime.strptime(fecha_inicio_str, '%d-%m-%Y')
+                except ValueError:
+                    # Si falla, intentar formato ISO
+                    fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d')
+                
+                fecha_inicio_display = fecha_inicio.strftime('%d-%m-%Y')
+            except:
+                fecha_inicio_display = sus.get('fecha_inicio', 'N/A')
+            
+            # Parsear fecha de vencimiento si existe, si no calcularla
+            try:
+                fecha_fin_str = sus.get('fecha_fin', '')
+                if fecha_fin_str:
+                    try:
+                        fecha_vencimiento = datetime.strptime(fecha_fin_str, '%d-%m-%Y')
+                    except ValueError:
+                        fecha_vencimiento = datetime.strptime(fecha_fin_str, '%Y-%m-%d')
+                else:
+                    # Calcular fecha de vencimiento basada en días restantes
+                    dias = sus.get('dias_restantes', 0)
+                    fecha_vencimiento = fecha_inicio + timedelta(days=dias)
+                
                 fecha_vencimiento_str = fecha_vencimiento.strftime('%d-%m-%Y')
             except:
                 fecha_vencimiento_str = "No disponible"
             
             info_items = [
                 ("Tipo de Suscripción:", sus.get('tipo_suscripcion', 'N/A').upper()),
-                ("Fecha de Inicio:", sus.get('fecha_inicio', 'N/A')),
+                ("Fecha de Inicio:", fecha_inicio_display),
                 ("Fecha de Vencimiento:", fecha_vencimiento_str),
                 ("Días Restantes:", f"{sus.get('dias_restantes', 0)} días"),
                 ("Estado:", "✅ ACTIVA" if sus.get('activa') else "❌ VENCIDA")
@@ -248,9 +387,23 @@ class MenuCliente:
                     exito, msg = self.gimnasio.eliminar_suscripcion(sus.get('id'))
                     if exito:
                         messagebox.showinfo("Éxito", "Suscripción eliminada correctamente")
+                        
+                        # CRÍTICO: Recargar datos del gimnasio
+                        self.gimnasio = Gimnasio()
+                        
+                        # Habilitar botón de adquirir
                         if 'adquirir_suscripcion' in self.botones:
                             self.botones['adquirir_suscripcion'].config(state="normal")
-                        actualizar()
+                        
+                        # Cerrar y reabrir la ventana
+                        if 'ver_suscripcion' in self.ventanas_abiertas:
+                            ventana_actual = self.ventanas_abiertas['ver_suscripcion']
+                            if ventana_actual.winfo_exists():
+                                ventana_actual.destroy()
+                            del self.ventanas_abiertas['ver_suscripcion']
+                        
+                        # Reabrir ventana con datos actualizados
+                        self.ver_suscripcion()
                     else:
                         messagebox.showerror("Error", msg)
             
@@ -332,10 +485,13 @@ class MenuCliente:
             ).pack(anchor="w", padx=40, pady=5)
         
         def confirmar():
+            # CAMBIO IMPORTANTE: usar formato chileno DD-MM-YYYY
+            fecha_hoy_chilena = datetime.now().strftime("%d-%m-%Y")
+            
             nueva_sus = Suscripcion(
                 self.cliente_data.get('rut'), 
                 tipo.get(), 
-                datetime.now().strftime("%Y-%m-%d")
+                fecha_hoy_chilena  # Ahora en formato chileno
             )
             exito, msg = self.gimnasio.crear_suscripcion(nueva_sus)
             messagebox.showinfo("Resultado", msg)
@@ -346,7 +502,7 @@ class MenuCliente:
                 v.destroy()
                 
                 # Recargar datos de gimnasio
-                self.gimnasio = Gimnacio()
+                self.gimnasio = Gimnasio()
                 
                 # Cerrar ventana ver_suscripcion si está abierta
                 if 'ver_suscripcion' in self.ventanas_abiertas:
@@ -365,7 +521,6 @@ class MenuCliente:
             relief="flat",
             cursor="hand2"
         ).pack(pady=20)
-
     
     def ver_rutinas(self):
         if self.verificar_ventana_abierta('ver_rutinas'):
@@ -486,7 +641,7 @@ class MenuCliente:
         
         v = tk.Toplevel(self.frame)
         v.title("Modificar Datos")
-        v.geometry("450x400")
+        v.geometry("450x450")
         v.configure(bg="white")
         self.registrar_ventana('modificar_datos', v, 'ver_datos')
         
@@ -532,26 +687,73 @@ class MenuCliente:
         combo_estado_civil.set(self.cliente_data.get('estado_civil', 'soltero'))
         
         def guardar():
-            valores = [c[1].get() for c in campos]
+            peso = entry_peso.get().strip()
+            estatura = entry_estatura.get().strip()
+            direccion = entry_direccion.get().strip()
+            estado_civil = combo_estado_civil.get().strip()
+            contraseña = entry_contraseña.get().strip()
             
-            if not all(valores):
+            # Validación 1: Campos vacíos
+            if not peso or not estatura or not direccion or not estado_civil or not contraseña:
                 messagebox.showerror("Error", "Complete todos los campos")
                 return
             
-            if valores[4] != self.cliente_data.get('contraseña'):
+            # Validación 2: Verificar contraseña actual
+            if contraseña != self.cliente_data.get('contraseña'):
                 messagebox.showerror("Error", "Contraseña incorrecta")
                 return
             
+            # Validación 3: Validar peso
+            validaciones = Validaciones()
+            es_valido, mensaje = validaciones.validar_peso(peso)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+            
+            # Validación 4: Validar estatura
+            es_valido, mensaje = validaciones.validar_estatura(estatura)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+            
+            # Convertir a float después de validar
+            try:
+                peso_float = float(peso)
+                estatura_float = float(estatura)
+            except ValueError:
+                messagebox.showerror("Error", "Peso y estatura deben ser números válidos")
+                return
+            
+            # Validación 5: Validar IMC
+            estatura_m = estatura_float / 100
+            imc = round(peso_float / (estatura_m ** 2), 2)
+            
+            if imc < 13:
+                messagebox.showerror("Error", f"IMC muy bajo ({imc}). El IMC no puede ser menor a 13. Verifique el peso y la estatura.")
+                return
+            
+            # Validación 6: Validar dirección
+            es_valido, mensaje = validaciones.validar_direccion(direccion)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
+            
+            # Validación 7: Validar estado civil
+            if estado_civil.lower() not in ["soltero", "casado", "divorciado", "viudo", "conviviente"]:
+                messagebox.showerror("Error", "Estado civil inválido")
+                return
+            
+            # Si todas las validaciones pasan, crear el cliente modificado
             try:
                 cliente_mod = Cliente(
-                    self.cliente_data.get('nombre'), 
-                    self.cliente_data.get('rut'),
-                    self.cliente_data.get('fecha_nacimiento'), 
-                    float(valores[1]),  # estatura
-                    float(valores[0]),  # peso
-                    valores[3],  # estado_civil
-                    valores[2],  # direccion
-                    valores[4]   # contraseña
+                    nombre=self.cliente_data.get('nombre'), 
+                    rut=self.cliente_data.get('rut'),
+                    fecha_nacimiento=self.cliente_data.get('fecha_nacimiento'), 
+                    estatura=estatura_float,
+                    peso=peso_float,
+                    estado_civil=estado_civil.lower(),
+                    direccion=direccion,
+                    contraseña=contraseña
                 )
                 
                 exito, msg = self.gimnasio.modificar_cliente(
@@ -569,8 +771,7 @@ class MenuCliente:
                     self.crear_menu()
                 else:
                     messagebox.showerror("Error", msg)
-            except ValueError:
-                messagebox.showerror("Error", "Peso y estatura deben ser números válidos")
+                    
             except Exception as e:
                 messagebox.showerror("Error", f"Error al actualizar: {str(e)}")
         
@@ -584,7 +785,135 @@ class MenuCliente:
             relief="flat",
             cursor="hand2"
         ).pack(pady=20)
+    def ver_horarios_entrenador(self):
+        """Muestra los horarios del entrenador asignado"""
+        if self.verificar_ventana_abierta('horarios_entrenador'):
+            return
+        
+        info_entrenador = self.obtener_info_entrenador_completa()
+        if not info_entrenador:
+            messagebox.showinfo("Información", "No tienes entrenador asignado o no se pudo cargar su información")
+            return
+        
+        v = tk.Toplevel(self.frame)
+        v.title("Horarios del Entrenador")
+        v.geometry("500x500")
+        v.configure(bg="white")
+        self.registrar_ventana('horarios_entrenador', v)
+        
+        # Título
+        tk.Label(
+            v, 
+            text=f"Horarios de {info_entrenador['nombre']}", 
+            font=("Helvetica", 14, "bold"), 
+            bg="white"
+        ).pack(pady=20)
+        
+        # Frame principal con scroll
+        frame_principal = tk.Frame(v, bg="white")
+        frame_principal.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        canvas = tk.Canvas(frame_principal, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg="white")
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Obtener turnos
+        turnos = info_entrenador.get('turnos', [])
+        
+        print(f"DEBUG: Mostrando {len(turnos)} turnos en la ventana")
+        
+        if not turnos:
+            tk.Label(
+                scrollable_frame, 
+                text="⚠️ No hay horarios registrados para este entrenador", 
+                font=("Helvetica", 11), 
+                bg="white", 
+                fg="#e74c3c"
+            ).pack(pady=30)
+        else:
+            # Organizar turnos por día
+            dias_semana = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+            turnos_por_dia = {dia: [] for dia in dias_semana}
+            
+            for turno in turnos:
+                dia = turno.get('dia', '').lower()
+                if dia in turnos_por_dia:
+                    turnos_por_dia[dia].append(turno)
+            
+            # Mostrar turnos organizados por día
+            for dia in dias_semana:
+                if turnos_por_dia[dia]:
+                    # Frame para cada día
+                    frame_dia = tk.Frame(
+                        scrollable_frame, 
+                        bg="#f8f9fa", 
+                        relief="solid", 
+                        bd=1
+                    )
+                    frame_dia.pack(fill="x", pady=5, padx=10)
+                    
+                    # Nombre del día
+                    tk.Label(
+                        frame_dia, 
+                        text=dia.capitalize(), 
+                        font=("Helvetica", 11, "bold"), 
+                        bg="#f8f9fa", 
+                        fg="#2c3e50"
+                    ).pack(anchor="w", padx=10, pady=(8, 2))
+                    
+                    # Turnos del día
+                    for turno in turnos_por_dia[dia]:
+                        hora_inicio = turno.get('hora_inicio', 'N/A')
+                        hora_fin = turno.get('hora_fin', 'N/A')
+                        horas = turno.get('horas_trabajo', 0)
+                        
+                        # Formatear horas (quitar segundos si existen)
+                        if len(hora_inicio) > 5:
+                            hora_inicio = hora_inicio[:5]
+                        if len(hora_fin) > 5:
+                            hora_fin = hora_fin[:5]
+                        
+                        tk.Label(
+                            frame_dia, 
+                            text=f"   ⏰ {hora_inicio} - {hora_fin} ({horas}h)", 
+                            font=("Helvetica", 10), 
+                            bg="#f8f9fa", 
+                            fg="#34495e"
+                        ).pack(anchor="w", padx=10, pady=2)
+                    
+                    # Espacio al final del frame
+                    tk.Label(frame_dia, text="", bg="#f8f9fa").pack(pady=2)
+            
+            # Calcular total de horas semanales
+            total_horas = sum(t.get('horas_trabajo', 0) for t in turnos)
+            
+            tk.Label(
+                scrollable_frame,
+                text=f"\n📊 Total: {len(turnos)} turnos/semana ({total_horas:.1f} horas)",
+                font=("Helvetica", 10, "bold"),
+                bg="white",
+                fg="#27ae60"
+            ).pack(pady=10)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
     
+    def actualizar_ventana(self, nombre_ventana, funcion_abrir):
+        """Cierra y reabre una ventana para actualizarla"""
+        if nombre_ventana in self.ventanas_abiertas: 
+            ventana = self.ventanas_abiertas[nombre_ventana]
+            if ventana.winfo_exists():
+                ventana.destroy()
+            del self.ventanas_abiertas[nombre_ventana]
+        funcion_abrir()
     def cerrar_sesion(self):
         if messagebox.askyesno("Cerrar Sesión", "¿Está seguro de que desea cerrar sesión?"):
             try:

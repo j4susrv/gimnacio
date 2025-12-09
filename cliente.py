@@ -48,7 +48,7 @@ class Cliente:
         }
     
     @staticmethod
-    def validar_datos(nombre, rut, fecha_nacimiento, estatura, peso, estado_civil, direccion, contraseña):
+    def validar_datos(nombre, fecha_nacimiento, estatura, peso, estado_civil, direccion, contraseña):
         errores = []
         advertencias = []
         
@@ -57,10 +57,6 @@ class Cliente:
             errores.append(mensaje)
         elif "Advertencia" in mensaje:
             advertencias.append(mensaje)
-        
-        valido, mensaje = Validaciones.validar_rut(rut)
-        if not valido:
-            errores.append(mensaje)
         
         valido, mensaje = Validaciones.validar_fecha_nacimiento(fecha_nacimiento)
         if not valido:

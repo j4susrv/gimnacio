@@ -5,6 +5,7 @@ import re
 from validaciones import Validaciones 
 from registro_entrenador import AppEntrenador
 from cliente import Cliente
+from gimnasio import Gimnasio  # ✅ AGREGAR ESTA LÍNEA
 
 def cargar_entrenadores():
     """Carga entrenadores desde el JSON"""
@@ -55,7 +56,9 @@ entrenador = tk.Frame(notebook, bg="white")
 notebook.add(cliente, text="  Cliente  ")
 notebook.add(entrenador, text="  Entrenador  ")
 
-app_entrenador = AppEntrenador(entrenador)
+# ✅ CREAR GIMNASIO Y PASARLO
+gimnasio = Gimnasio()
+app_entrenador = AppEntrenador(entrenador, gimnasio=gimnasio)
 
 # logica
 def ingresar_usuario():
@@ -88,10 +91,14 @@ def ingresar_usuario():
     if not validar_rut_unico[0]:
         messagebox.showerror("Error", validar_rut_unico[1])
         return
-
+    try:
+        estatura_float = float(estatura)
+        peso_float = float(peso)
+    except ValueError:
+        return False, "Deben ser valores validos"
     # Validar todos los campos usando la clase Cliente
     errores, advertencias = Cliente.validar_datos(
-        nombre, rut, fecha_nacimiento, estatura, peso, 
+        nombre, fecha_nacimiento, estatura_float, peso_float, 
         estado_civil, direccion, contraseña
     )
 
@@ -109,8 +116,8 @@ def ingresar_usuario():
             nombre=nombre,
             rut=rut,
             fecha_nacimiento=fecha_nacimiento,
-            estatura=float(estatura),
-            peso=float(peso),
+            estatura=estatura_float,
+            peso=peso_float,
             estado_civil=estado_civil,
             direccion=direccion,
             contraseña=contraseña,

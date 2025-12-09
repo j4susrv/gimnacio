@@ -10,11 +10,12 @@ class Validaciones:
 
     @staticmethod
     def validar_nombre(nombre):
+        nombre_sin_espacios = nombre.replace(" ","")
         if not nombre or nombre.strip() == "":
             return False, "El nombre no puede estar vacio"
-        if len(nombre) < 3:
+        if len(nombre_sin_espacios) < 3:
             return False, "El nombre debe tener mas de 3 caracteres"
-        if len(nombre)>50:
+        if len(nombre_sin_espacios)>50:
             return False, "El nombe no puede tener mas de 50 caracteres"
         if not re.match(r'^[a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+$', nombre):
             return False, "El nombre solo puede contener letras y espacios"
@@ -34,9 +35,13 @@ class Validaciones:
             return False, "El rut tiene que tener un minimo de 8 o 9 caracteres"
         if not re.match(r'^\d{7,8}[0-9Kk]$', rut_limpio):
             return False, "El formato del rut invalido"
-        
+        rut_invalido = [
+            "111111111","222222222","333333333","444444444","555555555","666666666","777777777","888888888","999999999"
+        ]
+        if rut_limpio in rut_invalido:
+            return False, "El rut es invalido, ingrese nuevamente"
         #Aqui se limpia el rut
-        rut_numeros = rut_limpio[:-1]
+        rut_numeros = rut_limpio[:-1] #elimina el ultimo digito de el rut en este caso el verificador
         digito_verificador = rut_limpio[-1].upper() #La funcion upper sirve para colocar todo en mayusculas
 
         suma = 0
@@ -172,12 +177,13 @@ class Validaciones:
         return True, "Estado civil válido"
     @staticmethod
     def validar_direccion(direccion):
+        direccion_sin_espacios = direccion.replace(" ", "")
         #Verificar si esta el campo con informacion y retorna falso si esta vacio
         if not direccion or direccion.strip() == "":
             return False, "La direccion no puede estar vacia" 
-        if len(direccion) < 5:
+        if len(direccion_sin_espacios) < 5:
             return False, "La direccion debe tener mas de 5 caracteres"
-        if len(direccion) > 100:
+        if len(direccion_sin_espacios) > 100:
             return False, "La direcicion no puede tener mas de 100 caracteres"
         if not re.search(r'\d', direccion): #Se verifica si direccion cuenta con algun digito numerico con el \d
             return True, f"La direccion no contiene numeros {direccion}. ¿Es correcto?"

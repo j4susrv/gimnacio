@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime
-from gimnasio import Gimnacio
+from gimnasio import Gimnasio
 from ejercicios import Ejercicio
 import json
 import os
@@ -10,7 +10,7 @@ class MenuEntrenador:
     def __init__(self, parent_frame, entrenador_data):
         self.frame = parent_frame
         self.entrenador_data = entrenador_data
-        self.gimnasio = Gimnacio()
+        self.gimnasio = Gimnasio()
         self.ventana_abierta = None  # Rastrear ventana abierta
         self.botones = []  # Guardar referencias a los botones
         self.crear_widgets()
@@ -18,7 +18,22 @@ class MenuEntrenador:
     def crear_widgets(self):
         for widget in self.frame.winfo_children():
             widget.destroy()
+        # BARRA DE ESTADO (arriba de todo)
+        esta_abierto, mensaje = self.gimnasio.obtener_estado_actual()
+        color = "#27ae60" if esta_abierto else "#e74c3c"
         
+        self.label_estado = tk.Label(
+            self.frame,
+            text=mensaje,
+            font=("Helvetica", 11),
+            bg=color,
+            fg="white",
+            pady=8
+        )
+        self.label_estado.pack(fill="x")
+        
+        # Actualizar cada minuto
+        self.actualizar_estado_gimnasio()
         titulo = tk.Label(
             self.frame,
             text=f"Bienvenido, {self.entrenador_data.get('nombre', 'Entrenador')}",
@@ -92,7 +107,16 @@ class MenuEntrenador:
             relief="flat"
         )
         btn_cerrar.pack(fill="x", pady=10)
-    
+    def actualizar_estado_gimnasio(self):
+        """Actualiza el estado cada minuto"""
+        try:
+            esta_abierto, mensaje = self.gimnasio.obtener_estado_actual()
+            color = "#27ae60" if esta_abierto else "#e74c3c"
+            self.label_estado.config(text=mensaje, bg=color)
+        except:
+            pass
+        
+        self.frame.after(60000, self.actualizar_estado_gimnasio)
     def _bloquear_botones(self):
         """Deshabilita todos los botones excepto cerrar sesión"""
         for boton in self.botones:
@@ -177,7 +201,11 @@ class MenuEntrenador:
         self.ventana_abierta = ventana
         self._bloquear_botones()
         
-        # Registrar callback al cerrar ventana
+        # Protocol: Define el comportamiento cuando se cierra la ventana con la X
+        # Sin esto, la ventana se cierra pero los botones quedan bloqueados
+        # Con esto, primero ejecuta al_cerrar() (desbloquea botones, limpia variables)
+        # y LUEGO cierra la ventana correctamente
+        #Lo que hace el lambda es crear una funcion temporal que cuando se ejecute llama a self._cerrar_ventana a la ventana afectada
         ventana.protocol("WM_DELETE_WINDOW", lambda: self._cerrar_ventana(ventana))
         
         tk.Label(
