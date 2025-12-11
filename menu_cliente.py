@@ -83,7 +83,7 @@ class MenuCliente:
             # Estado de disponibilidad
             disponible = entrenador_info['disponible']
             estado_color = "#27ae60" if disponible else "#e74c3c"
-            estado_texto = "🟢 Disponible ahora" if disponible else "🔴 No disponible"
+            estado_texto = "Disponible ahora" if disponible else "No disponible"
             
             tk.Label(
                 info_frame,
@@ -231,7 +231,7 @@ class MenuCliente:
                     
                     # Verificar disponibilidad
                     disponible = TurnoEntrenador.esta_disponible(rut_entrenador, entrenadores)
-                    estado = "🟢 Disponible" if disponible else "🔴 No disponible"
+                    estado = "Disponible" if disponible else "No disponible"
                     
                     return f"{nombre} - {especialidades} ({estado})"
         except Exception as e:
@@ -260,17 +260,136 @@ class MenuCliente:
         if boton_key:
             self.bloquear_botones(boton_key)
         
-        def al_cerrar():
-            self.desbloquear_botones()
-            if nombre_ventana in self.ventanas_abiertas:
-                del self.ventanas_abiertas[nombre_ventana]
-            ventana.destroy()
-            
+    def al_cerrar():
+        self.desbloquear_botones()
+        if nombre_ventana in self.ventanas_abiertas:
+            del self.ventanas_abiertas[nombre_ventana]
+        ventana.destroy()
+        
         # Protocol: Define el comportamiento cuando se cierra la ventana con la X
         # Sin esto, la ventana se cierra pero los botones quedan bloqueados
         # Con esto, primero ejecuta al_cerrar() (desbloquea botones, limpia variables)
         # y LUEGO cierra la ventana correctamente
         ventana.protocol("WM_DELETE_WINDOW", al_cerrar) 
+        
+    def ver_horarios_entrenador(self):
+        """Muestra los horarios del entrenador asignado"""
+        if self.verificar_ventana_abierta('horarios_entrenador'):
+            return
+        
+        info_entrenador = self.obtener_info_entrenador_completa()
+        if not info_entrenador:
+            messagebox.showinfo("Información", "No tienes entrenador asignado o no se pudo cargar su información")
+            return
+        
+        v = tk.Toplevel(self.frame)
+        v.title("Horarios del Entrenador")
+        v.geometry("500x500")
+        v.configure(bg="white")
+        self.registrar_ventana('horarios_entrenador', v)
+        
+        # Título
+        tk.Label(
+            v, 
+            text=f"Horarios de {info_entrenador['nombre']}", 
+            font=("Helvetica", 14, "bold"), 
+            bg="white"
+        ).pack(pady=20)
+        
+        # Frame principal con scroll
+        frame_principal = tk.Frame(v, bg="white")
+        frame_principal.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        canvas = tk.Canvas(frame_principal, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg="white")
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Obtener turnos
+        turnos = info_entrenador.get('turnos', [])
+        
+        if not turnos:
+            tk.Label(
+                scrollable_frame, 
+                text="⚠️ No hay horarios registrados para este entrenador", 
+                font=("Helvetica", 11), 
+                bg="white", 
+                fg="#e74c3c"
+            ).pack(pady=30)
+        else:
+            # Organizar turnos por día
+            dias_semana = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+            turnos_por_dia = {dia: [] for dia in dias_semana}
+            
+            for turno in turnos:
+                dia = turno.get('dia', '').lower()
+                if dia in turnos_por_dia:
+                    turnos_por_dia[dia].append(turno)
+            
+            # Mostrar turnos organizados por día
+            for dia in dias_semana:
+                if turnos_por_dia[dia]:
+                    # Frame para cada día
+                    frame_dia = tk.Frame(
+                        scrollable_frame, 
+                        bg="#f8f9fa", 
+                        relief="solid", 
+                        bd=1
+                    )
+                    frame_dia.pack(fill="x", pady=5, padx=10)
+                    
+                    # Nombre del día
+                    tk.Label(
+                        frame_dia, 
+                        text=dia.capitalize(), 
+                        font=("Helvetica", 11, "bold"), 
+                        bg="#f8f9fa", 
+                        fg="#2c3e50"
+                    ).pack(anchor="w", padx=10, pady=(8, 2))
+                    
+                    # Turnos del día
+                    for turno in turnos_por_dia[dia]:
+                        hora_inicio = turno.get('hora_inicio', 'N/A')
+                        hora_fin = turno.get('hora_fin', 'N/A')
+                        horas = turno.get('horas_trabajo', 0)
+                        
+                        # Formatear horas (quitar segundos si existen)
+                        if len(hora_inicio) > 5:
+                            hora_inicio = hora_inicio[:5]
+                        if len(hora_fin) > 5:
+                            hora_fin = hora_fin[:5]
+                        
+                        tk.Label(
+                            frame_dia, 
+                            text=f"   ⏰ {hora_inicio} - {hora_fin} ({horas}h)", 
+                            font=("Helvetica", 10), 
+                            bg="#f8f9fa", 
+                            fg="#34495e"
+                        ).pack(anchor="w", padx=10, pady=2)
+                    
+                    # Espacio al final del frame
+                    tk.Label(frame_dia, text="", bg="#f8f9fa").pack(pady=2)
+            
+            # Calcular total de horas semanales
+            total_horas = sum(t.get('horas_trabajo', 0) for t in turnos)
+            
+            tk.Label(
+                scrollable_frame,
+                text=f"\n📊 Total: {len(turnos)} turnos/semana ({total_horas:.1f} horas)",
+                font=("Helvetica", 10, "bold"),
+                bg="white",
+                fg="#27ae60"
+            ).pack(pady=10)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
     
     def ver_suscripcion(self):
         if self.verificar_ventana_abierta('ver_suscripcion'): 
@@ -569,23 +688,42 @@ class MenuCliente:
         scroll.pack(side="right", fill="y")
     
     def ver_datos(self):
+        # Recargar datos para obtener cambios recientes
+        self.gimnasio.cargar_datos()
+        
         if self.verificar_ventana_abierta('ver_datos'):
             return
         
         v = tk.Toplevel(self.frame)
         v.title("Mis Datos")
-        v.geometry("500x550")
+        v.geometry("550x700")
         v.configure(bg="white")
         self.registrar_ventana('ver_datos', v, 'ver_datos')
         
+        # Crear un canvas con scrollbar para contenido largo
+        canvas = tk.Canvas(v, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(v, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg="white")
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
         tk.Label(
-            v, 
+            scrollable_frame, 
             text="Información Personal", 
             font=("Helvetica", 14, "bold"), 
             bg="white"
         ).pack(pady=20)
         
-        f = tk.Frame(v, bg="white")
+        f = tk.Frame(scrollable_frame, bg="white")
         f.pack(padx=40, pady=10)
         
         # Obtener entrenador asignado desde JSON
@@ -596,7 +734,7 @@ class MenuCliente:
             ("Nombre:", self.cliente_data.get('nombre', 'N/A')),
             ("RUT:", self.cliente_data.get('rut', 'N/A')),
             ("Estatura:", f"{self.cliente_data.get('estatura', 'N/A')} cm"),
-            ("Peso:", f"{self.cliente_data.get('peso', 'N/A')} kg"),
+            ("Peso Actual:", f"{self.cliente_data.get('peso', 'N/A')} kg"),
             ("IMC:", str(self.cliente_data.get('imc', 'N/A'))),
             ("Categoría IMC:", self.cliente_data.get('categoria_imc', 'N/A')),
             ("Dirección:", self.cliente_data.get('direccion', 'N/A')),
@@ -619,16 +757,153 @@ class MenuCliente:
                 bg="white"
             ).grid(row=i, column=1, sticky="w", pady=8, padx=15)
         
+        # ==================== SECCIÓN DE SEGUIMIENTO DE PESO ====================
+        peso_frame = tk.Frame(scrollable_frame, bg="#f8f9fa", relief="solid", bd=1)
+        peso_frame.pack(padx=30, pady=20, fill="x")
+        
+        tk.Label(
+            peso_frame,
+            text="📊 Seguimiento de Peso",
+            font=("Helvetica", 12, "bold"),
+            bg="#f8f9fa",
+            fg="#2c3e50"
+        ).pack(pady=(15, 10))
+        
+        # Obtener datos de comparación de peso
+        gimnasio_temp = Gimnasio()
+        rut_cliente = self.cliente_data.get('rut')
+        comparacion = gimnasio_temp.obtener_comparacion_peso(rut_cliente)
+        
+        if comparacion:
+            # Frame para las métricas
+            metricas_frame = tk.Frame(peso_frame, bg="white")
+            metricas_frame.pack(padx=15, pady=10, fill="x")
+            
+            # Peso Inicial
+            tk.Label(
+                metricas_frame,
+                text="Peso Inicial:",
+                font=("Helvetica", 9, "bold"),
+                bg="white"
+            ).grid(row=0, column=0, sticky="e", pady=5, padx=5)
+            
+            tk.Label(
+                metricas_frame,
+                text=f"{comparacion['peso_inicial']} kg",
+                font=("Helvetica", 9),
+                bg="white"
+            ).grid(row=0, column=1, sticky="w", pady=5, padx=5)
+            
+            # Peso Actual
+            tk.Label(
+                metricas_frame,
+                text="Peso Actual:",
+                font=("Helvetica", 9, "bold"),
+                bg="white"
+            ).grid(row=1, column=0, sticky="e", pady=5, padx=5)
+            
+            tk.Label(
+                metricas_frame,
+                text=f"{comparacion['peso_actual']} kg",
+                font=("Helvetica", 9),
+                bg="white"
+            ).grid(row=1, column=1, sticky="w", pady=5, padx=5)
+            
+            # Diferencia vs Último
+            color_diff_ultimo = "#e74c3c" if comparacion['diferencia_vs_ultimo'] > 0 else "#27ae60"
+            signo_ultimo = "+" if comparacion['diferencia_vs_ultimo'] >= 0 else ""
+            
+            tk.Label(
+                metricas_frame,
+                text="Diferencia vs Último:",
+                font=("Helvetica", 9, "bold"),
+                bg="white"
+            ).grid(row=2, column=0, sticky="e", pady=5, padx=5)
+            
+            tk.Label(
+                metricas_frame,
+                text=f"{signo_ultimo}{comparacion['diferencia_vs_ultimo']} kg",
+                font=("Helvetica", 9, "bold"),
+                bg="white",
+                fg=color_diff_ultimo
+            ).grid(row=2, column=1, sticky="w", pady=5, padx=5)
+            
+            # Diferencia vs Inicial
+            color_diff_inicial = "#e74c3c" if comparacion['diferencia_vs_inicial'] > 0 else "#27ae60"
+            signo_inicial = "+" if comparacion['diferencia_vs_inicial'] >= 0 else ""
+            
+            tk.Label(
+                metricas_frame,
+                text="Diferencia vs Inicial:",
+                font=("Helvetica", 9, "bold"),
+                bg="white"
+            ).grid(row=3, column=0, sticky="e", pady=5, padx=5)
+            
+            tk.Label(
+                metricas_frame,
+                text=f"{signo_inicial}{comparacion['diferencia_vs_inicial']} kg",
+                font=("Helvetica", 9, "bold"),
+                bg="white",
+                fg=color_diff_inicial
+            ).grid(row=3, column=1, sticky="w", pady=5, padx=5)
+            
+            # Última actualización
+            tk.Label(
+                metricas_frame,
+                text="Última Actualización:",
+                font=("Helvetica", 9, "bold"),
+                bg="white"
+            ).grid(row=4, column=0, sticky="e", pady=5, padx=5)
+            
+            tk.Label(
+                metricas_frame,
+                text=comparacion['fecha_ultimo_registro'],
+                font=("Helvetica", 9),
+                bg="white"
+            ).grid(row=4, column=1, sticky="w", pady=5, padx=5)
+            
+            # Total de registros
+            tk.Label(
+                metricas_frame,
+                text="Total de Registros:",
+                font=("Helvetica", 9, "bold"),
+                bg="white"
+            ).grid(row=5, column=0, sticky="e", pady=5, padx=5)
+            
+            tk.Label(
+                metricas_frame,
+                text=str(comparacion['total_registros']),
+                font=("Helvetica", 9),
+                bg="white"
+            ).grid(row=5, column=1, sticky="w", pady=5, padx=5)
+        
+        # ===== Botones =====
+        botones_frame = tk.Frame(scrollable_frame, bg="white")
+        botones_frame.pack(pady=20)
+        
         tk.Button(
-            v, 
-            text="Modificar Datos", 
+            botones_frame, 
+            text="📝 Registrar Peso", 
+            command=self.registrar_nuevo_peso, 
+            bg="#3498db", 
+            fg="white", 
+            font=("Helvetica", 10, "bold"),
+            relief="flat",
+            cursor="hand2",
+            width=20
+        ).pack(pady=5)
+        
+        tk.Button(
+            botones_frame, 
+            text="✏️ Modificar Datos", 
             command=lambda: self.modificar_datos(v), 
             bg="#e67e22", 
             fg="white", 
             font=("Helvetica", 10, "bold"),
             relief="flat",
-            cursor="hand2"
-        ).pack(pady=20)
+            cursor="hand2",
+            width=20
+        ).pack(pady=5)
     
     def modificar_datos(self, v_padre):
         # Cerrar ventana de datos
@@ -785,135 +1060,143 @@ class MenuCliente:
             relief="flat",
             cursor="hand2"
         ).pack(pady=20)
-    def ver_horarios_entrenador(self):
-        """Muestra los horarios del entrenador asignado"""
-        if self.verificar_ventana_abierta('horarios_entrenador'):
-            return
-        
-        info_entrenador = self.obtener_info_entrenador_completa()
-        if not info_entrenador:
-            messagebox.showinfo("Información", "No tienes entrenador asignado o no se pudo cargar su información")
+
+    def registrar_nuevo_peso(self):
+        """Modal para registrar un nuevo peso del cliente"""
+        if self.verificar_ventana_abierta('registrar_peso'):
             return
         
         v = tk.Toplevel(self.frame)
-        v.title("Horarios del Entrenador")
-        v.geometry("500x500")
+        v.title("Registrar Nuevo Peso")
+        v.geometry("400x350")
         v.configure(bg="white")
-        self.registrar_ventana('horarios_entrenador', v)
+        v.resizable(False, False)
+        v.grab_set()
         
-        # Título
+        self.registrar_ventana('registrar_peso', v, None)
+        
         tk.Label(
-            v, 
-            text=f"Horarios de {info_entrenador['nombre']}", 
-            font=("Helvetica", 14, "bold"), 
-            bg="white"
+            v,
+            text="Registrar Peso",
+            font=("Helvetica", 14, "bold"),
+            bg="white",
+            fg="#2c3e50"
         ).pack(pady=20)
         
-        # Frame principal con scroll
-        frame_principal = tk.Frame(v, bg="white")
-        frame_principal.pack(fill="both", expand=True, padx=20, pady=10)
+        form_frame = tk.Frame(v, bg="white")
+        form_frame.pack(padx=30, pady=10, fill="both", expand=True)
         
-        canvas = tk.Canvas(frame_principal, bg="white", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas, bg="white")
+        tk.Label(
+            form_frame,
+            text="Peso (kg):",
+            font=("Helvetica", 11, "bold"),
+            bg="white"
+        ).pack(anchor="w", pady=(0, 5))
         
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        var_peso = tk.StringVar()
+        entry_peso = ttk.Entry(
+            form_frame,
+            textvariable=var_peso,
+            font=("Helvetica", 11),
+            width=25
         )
+        entry_peso.pack(fill="x", pady=(0, 15))
+        entry_peso.focus()
         
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        tk.Label(
+            form_frame,
+            text="Fecha (DD-MM-YYYY):",
+            font=("Helvetica", 11, "bold"),
+            bg="white"
+        ).pack(anchor="w", pady=(0, 5))
         
-        # Obtener turnos
-        turnos = info_entrenador.get('turnos', [])
+        var_fecha = tk.StringVar()
+        var_fecha.set(datetime.now().strftime("%d-%m-%Y"))
+        entry_fecha = ttk.Entry(
+            form_frame,
+            textvariable=var_fecha,
+            font=("Helvetica", 11),
+            width=25
+        )
+        entry_fecha.pack(fill="x", pady=(0, 5))
         
-        print(f"DEBUG: Mostrando {len(turnos)} turnos en la ventana")
+        tk.Label(
+            form_frame,
+            text="(Si no especificas, se usa la fecha actual)",
+            font=("Helvetica", 8),
+            bg="white",
+            fg="gray"
+        ).pack(anchor="w")
         
-        if not turnos:
-            tk.Label(
-                scrollable_frame, 
-                text="⚠️ No hay horarios registrados para este entrenador", 
-                font=("Helvetica", 11), 
-                bg="white", 
-                fg="#e74c3c"
-            ).pack(pady=30)
-        else:
-            # Organizar turnos por día
-            dias_semana = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
-            turnos_por_dia = {dia: [] for dia in dias_semana}
+        btn_frame = tk.Frame(v, bg="white")
+        btn_frame.pack(padx=30, pady=20, fill="x", expand=True)
+        
+        def guardar_peso():
+            peso_str = var_peso.get().strip()
+            fecha_str = var_fecha.get().strip()
             
-            for turno in turnos:
-                dia = turno.get('dia', '').lower()
-                if dia in turnos_por_dia:
-                    turnos_por_dia[dia].append(turno)
+            if not peso_str:
+                messagebox.showerror("Error", "Por favor ingresa un peso")
+                return
             
-            # Mostrar turnos organizados por día
-            for dia in dias_semana:
-                if turnos_por_dia[dia]:
-                    # Frame para cada día
-                    frame_dia = tk.Frame(
-                        scrollable_frame, 
-                        bg="#f8f9fa", 
-                        relief="solid", 
-                        bd=1
-                    )
-                    frame_dia.pack(fill="x", pady=5, padx=10)
-                    
-                    # Nombre del día
-                    tk.Label(
-                        frame_dia, 
-                        text=dia.capitalize(), 
-                        font=("Helvetica", 11, "bold"), 
-                        bg="#f8f9fa", 
-                        fg="#2c3e50"
-                    ).pack(anchor="w", padx=10, pady=(8, 2))
-                    
-                    # Turnos del día
-                    for turno in turnos_por_dia[dia]:
-                        hora_inicio = turno.get('hora_inicio', 'N/A')
-                        hora_fin = turno.get('hora_fin', 'N/A')
-                        horas = turno.get('horas_trabajo', 0)
-                        
-                        # Formatear horas (quitar segundos si existen)
-                        if len(hora_inicio) > 5:
-                            hora_inicio = hora_inicio[:5]
-                        if len(hora_fin) > 5:
-                            hora_fin = hora_fin[:5]
-                        
-                        tk.Label(
-                            frame_dia, 
-                            text=f"   ⏰ {hora_inicio} - {hora_fin} ({horas}h)", 
-                            font=("Helvetica", 10), 
-                            bg="#f8f9fa", 
-                            fg="#34495e"
-                        ).pack(anchor="w", padx=10, pady=2)
-                    
-                    # Espacio al final del frame
-                    tk.Label(frame_dia, text="", bg="#f8f9fa").pack(pady=2)
+            es_valido, mensaje = Validaciones.validar_peso(peso_str)
+            if not es_valido:
+                messagebox.showerror("Error", mensaje)
+                return
             
-            # Calcular total de horas semanales
-            total_horas = sum(t.get('horas_trabajo', 0) for t in turnos)
+            peso = float(peso_str)
             
-            tk.Label(
-                scrollable_frame,
-                text=f"\n📊 Total: {len(turnos)} turnos/semana ({total_horas:.1f} horas)",
-                font=("Helvetica", 10, "bold"),
-                bg="white",
-                fg="#27ae60"
-            ).pack(pady=10)
+            if fecha_str:
+                try:
+                    datetime.strptime(fecha_str, "%d-%m-%Y")
+                except ValueError:
+                    messagebox.showerror("Error", "Fecha inválida. Usa formato DD-MM-YYYY")
+                    return
+            else:
+                fecha_str = datetime.now().strftime("%d-%m-%Y")
+            
+            from historial_peso import HistorialPeso
+            
+            rut_cliente = self.cliente_data.get('rut')
+            historial = HistorialPeso(rut_cliente, peso, fecha_str)
+            
+            exito, mensaje = self.gimnasio.registrar_peso(historial)
+            
+            if exito:
+                messagebox.showinfo("Éxito", f"Peso registrado exitosamente\n{mensaje}")
+                v.destroy()
+                if 'ver_datos' in self.ventanas_abiertas:
+                    if self.ventanas_abiertas['ver_datos'].winfo_exists():
+                        self.ventanas_abiertas['ver_datos'].destroy()
+                        del self.ventanas_abiertas['ver_datos']
+                self.ver_datos()
+            else:
+                messagebox.showerror("Error", f"No se pudo registrar el peso:\n{mensaje}")
         
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-    
-    def actualizar_ventana(self, nombre_ventana, funcion_abrir):
-        """Cierra y reabre una ventana para actualizarla"""
-        if nombre_ventana in self.ventanas_abiertas: 
-            ventana = self.ventanas_abiertas[nombre_ventana]
-            if ventana.winfo_exists():
-                ventana.destroy()
-            del self.ventanas_abiertas[nombre_ventana]
-        funcion_abrir()
+        tk.Button(
+            btn_frame,
+            text="Guardar",
+            command=guardar_peso,
+            bg="#27ae60",
+            fg="white",
+            font=("Helvetica", 11, "bold"),
+            relief="flat",
+            cursor="hand2",
+            width=15
+        ).pack(side="left", padx=5)
+        
+        tk.Button(
+            btn_frame,
+            text="Cancelar",
+            command=v.destroy,
+            bg="#95a5a6",
+            fg="white",
+            font=("Helvetica", 11, "bold"),
+            relief="flat",
+            cursor="hand2",
+            width=15
+        ).pack(side="left", padx=5)
+
     def cerrar_sesion(self):
         if messagebox.askyesno("Cerrar Sesión", "¿Está seguro de que desea cerrar sesión?"):
             try:
@@ -925,8 +1208,10 @@ class MenuCliente:
                 # Limpiar diccionario
                 self.ventanas_abiertas.clear()
                 
-                # Abrir login.py
-                subprocess.Popen([sys.executable, "login.py"])
+                # Abrir login.py desde gimnacio
+                import os
+                ruta_login = os.path.join(os.path.dirname(__file__), "login.py")
+                subprocess.Popen([sys.executable, ruta_login])
                 
                 # Cerrar la ventana principal
                 self.frame.winfo_toplevel().destroy()

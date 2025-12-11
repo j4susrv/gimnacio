@@ -189,8 +189,10 @@ class AdminGimnasio:
                 # Bloquear botones
                 self.bloquear_botones('registrar')
                 
-                # Abrir registro.py
-                proceso = subprocess.Popen([sys.executable, "registro.py"])
+                # Abrir registro.py desde gimnacio
+                import os
+                ruta_registro = os.path.join(os.path.dirname(__file__), "registro.py")
+                proceso = subprocess.Popen([sys.executable, ruta_registro])
                 
                 # Crear ventana invisible para monitorear el proceso
                 ventana_monitor = tk.Toplevel(self.frame)
@@ -257,6 +259,9 @@ class AdminGimnasio:
             ).pack(pady=50)
 
     def ver_clientes(self):
+        # Recargar datos para obtener cambios recientes
+        self.gimnasio.cargar_datos()
+        
         # Verificar si ya hay una ventana de clientes abierta
         if 'clientes' in self.ventanas_abiertas and self.ventanas_abiertas['clientes'].winfo_exists():
             self.ventanas_abiertas['clientes'].lift()
@@ -372,39 +377,33 @@ class AdminGimnasio:
         entry_contraseña = tk.Entry(ventana_mod, width=30, show="*")
         entry_contraseña.insert(0, cliente.get('contraseña', ''))
         entry_contraseña.pack(pady=5)
-
         def guardar_cambios():
             nombre = entry_nombre.get().strip()
             peso = entry_peso.get().strip()
             estatura = entry_estatura.get().strip()
             contraseña = entry_contraseña.get().strip()
 
-            # Validación 1: Campos vacíos
             if not nombre or not peso or not estatura or not contraseña:
                 messagebox.showerror("Error", "Complete todos los campos")
                 return
 
-            # Validación 2: Validar nombre
             es_valido, mensaje = Validaciones.validar_nombre(nombre)
             if not es_valido:
                 messagebox.showerror("Error", mensaje)
                 return
 
-            # Validación 3: Validar peso
             es_valido, mensaje = Validaciones.validar_peso(peso)
             if not es_valido:
                 messagebox.showerror("Error", mensaje)
                 return
-            peso = float(peso)  # Convertir después de validar
+            peso = float(peso)
 
-            # Validación 4: Validar estatura
             es_valido, mensaje = Validaciones.validar_estatura(estatura)
             if not es_valido:
                 messagebox.showerror("Error", mensaje)
                 return
-            estatura = float(estatura)  # Convertir después de validar
+            estatura = float(estatura)
 
-            # Validación 5: Validar IMC (después de tener peso y estatura validados)
             estatura_m = estatura / 100
             imc = round(peso / (estatura_m ** 2), 2)
             
@@ -412,13 +411,11 @@ class AdminGimnasio:
                 messagebox.showerror("Error", f"IMC muy bajo ({imc}). El IMC no puede ser menor a 13. Verifique el peso y la estatura.")
                 return
 
-            # Validación 6: Validar contraseña
             es_valido, mensaje = Validaciones.validar_contraseña(contraseña)
             if not es_valido:
                 messagebox.showerror("Error", mensaje)
                 return
 
-            # Si todas las validaciones pasan, proceder a modificar
             cliente_modificado = Cliente(
                 nombre=nombre,
                 rut=cliente.get('rut'),
@@ -434,14 +431,13 @@ class AdminGimnasio:
             if exito:
                 messagebox.showinfo("Éxito", mensaje)
                 ventana_mod.destroy()
-                # Actualizar la lista si la ventana está abierta
                 if 'clientes' in self.ventanas_abiertas:
                     ventana_clientes = self.ventanas_abiertas['clientes']
                     if hasattr(ventana_clientes, 'scrollable_frame'):
                         self.actualizar_lista_clientes(ventana_clientes.scrollable_frame)
             else:
                 messagebox.showerror("Error", mensaje)
-
+        
         tk.Button(ventana_mod, text="Guardar", command=guardar_cambios, bg="#50c878", fg="white", width=20).pack(pady=20)
 
     def eliminar_cliente(self, rut):
@@ -480,6 +476,9 @@ class AdminGimnasio:
             ).pack(pady=50)
 
     def ver_entrenadores(self):
+        # Recargar datos para obtener cambios recientes
+        self.gimnasio.cargar_datos()
+        
         # Verificar si ya hay una ventana de entrenadores abierta
         if 'entrenadores' in self.ventanas_abiertas and self.ventanas_abiertas['entrenadores'].winfo_exists():
             self.ventanas_abiertas['entrenadores'].lift()

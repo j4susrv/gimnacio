@@ -1,0 +1,27 @@
+[
+    {
+        "nombre": "Turno Manana (Lun-Vie)",
+        "hora_inicio": "07:00:00",
+        "hora_fin": "14:00:00"
+    },
+    {
+        "nombre": "Turno Tarde (Lun-Vie)",
+        "hora_inicio": "14:00:00",
+        "hora_fin": "22:00:00"
+    },
+    {
+        "nombre": "Turno Completo (Lun-Vie)",
+        "hora_inicio": "07:00:00",
+        "hora_fin": "22:00:00"
+    },
+    {
+        "nombre": "Turno Sabado",
+        "hora_inicio": "09:00:00",
+        "hora_fin": "17:00:00"
+    },
+    {
+        "nombre": "Turno Domingo",
+        "hora_inicio": "12:00:00",
+        "hora_fin": "17:00:00"
+    }
+]

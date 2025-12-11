@@ -153,15 +153,16 @@ class Validaciones:
         
     @staticmethod
     def validar_peso(peso):
-        #Se valida el peso ek kg siendo realista entre 30 y 300
         try:
             peso_num = float(peso)
-            if peso_num <30:
-                return False, "El peso debe ser menor a 30kg"
+            if peso_num <= 0:
+                return False, "El peso debe ser mayor a 0 kg"
+            if peso_num < 30:
+                return False, "El peso debe ser mayor a 30 kg"
             if peso_num > 300:
-                return False, "El peso no puede ser mayor a 300kg"
+                return False, "El peso no puede ser mayor a 300 kg"
             if peso_num < 40 or peso_num > 200:
-                return True, f"Es correcto el peso dado? {peso_num}kg"
+                return True, f"Peso inusual: {peso_num} kg. Verifica que sea correcto"
             return True, "El peso es valido"
         except ValueError:
             return False, "El peso debe ser un numero valido"

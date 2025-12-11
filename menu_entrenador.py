@@ -175,6 +175,9 @@ class MenuEntrenador:
             return {}
     
     def ver_mis_clientes(self):
+        # Recargar datos para obtener cambios recientes
+        self.gimnasio.cargar_datos()
+        
         # Verificar si ya hay una ventana abierta
         if self.ventana_abierta is not None:
             messagebox.showwarning("Ventana abierta", "Ya tienes una ventana abierta. Ciérrala primero.")
@@ -474,4 +477,6 @@ class MenuEntrenador:
             
             import subprocess
             import sys
-            subprocess.Popen([sys.executable, "login.py"])
+            import os
+            ruta_login = os.path.join(os.path.dirname(__file__), "login.py")
+            subprocess.Popen([sys.executable, ruta_login])

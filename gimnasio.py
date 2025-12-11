@@ -8,7 +8,6 @@ from historial_peso import HistorialPeso
 from cliente import Cliente
 from entrenador import TurnoEntrenador
 def crear_archivo():
-    #se crean los archivos json
     archivos = {
         "clientes.json": [],
         "ejercicios.json": [],
@@ -61,10 +60,22 @@ def crear_archivo():
             }
         }
     }
+    
     for archivo, contenido_inicial in archivos.items():
         if not os.path.exists(archivo):
             with open(archivo, "w", encoding="utf-8") as f:
                 json.dump(contenido_inicial, f, indent=4, ensure_ascii=False)
+        else:
+            if archivo == "administradores.json":
+                try:
+                    with open(archivo, "r", encoding="utf-8") as f:
+                        datos_existentes = json.load(f)
+                    if not datos_existentes:
+                        with open(archivo, "w", encoding="utf-8") as f:
+                            json.dump(contenido_inicial, f, indent=4, ensure_ascii=False)
+                except:
+                    with open(archivo, "w", encoding="utf-8") as f:
+                        json.dump(contenido_inicial, f, indent=4, ensure_ascii=False)
 
 # se crea la clase gimnacio
 class Gimnasio:
@@ -609,3 +620,58 @@ class Gimnasio:
         
         except Exception as e:
             return False, f"Error al eliminar suscripción: {str(e)}"
+    
+    def obtener_comparacion_peso(self, rut_cliente):
+        """
+        Obtiene comparación detallada del peso del cliente:
+        - Peso inicial (al registrarse)
+        - Peso actual
+        - Último peso registrado
+        - Diferencia vs último registro
+        - Diferencia vs peso inicial
+        """
+        historial = self.obtener_historial_peso_cliente(rut_cliente)
+        exito, cliente = self.buscar_cliente_por_rut(rut_cliente)
+        
+        if not exito:
+            return None
+        
+        peso_inicial_cliente = cliente.get("peso", 0)
+        
+        if len(historial) == 0:
+            # No hay historial, retornar datos del cliente
+            return {
+                "peso_inicial": peso_inicial_cliente,
+                "ultimo_peso": peso_inicial_cliente,
+                "peso_actual": cliente.get("peso", 0),
+                "diferencia_vs_ultimo": 0,
+                "diferencia_vs_inicial": 0,
+                "fecha_ultimo_registro": cliente.get("fecha_registro", "N/A"),
+                "hay_registros": False,
+                "total_registros": 0
+            }
+        
+        # Obtener el peso más antiguo (inicial) del historial
+        peso_inicial_historial = historial[0]["peso"]
+        
+        # Obtener el último peso registrado
+        ultimo_peso = historial[-1]["peso"]
+        
+        # Obtener penúltimo peso si existe
+        penultimo_peso = historial[-2]["peso"] if len(historial) > 1 else peso_inicial_historial
+        
+        # Calcular diferencias
+        diferencia_vs_ultimo = round(ultimo_peso - penultimo_peso, 2)
+        diferencia_vs_inicial = round(ultimo_peso - peso_inicial_historial, 2)
+        
+        return {
+            "peso_inicial": peso_inicial_historial,
+            "ultimo_peso": penultimo_peso,
+            "peso_actual": ultimo_peso,
+            "diferencia_vs_ultimo": diferencia_vs_ultimo,
+            "diferencia_vs_inicial": diferencia_vs_inicial,
+            "fecha_ultimo_registro": historial[-1].get("fecha", "N/A"),
+            "hay_registros": True,
+            "total_registros": len(historial),
+            "historial": historial
+        }
