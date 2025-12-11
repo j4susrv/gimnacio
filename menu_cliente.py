@@ -260,16 +260,13 @@ class MenuCliente:
         if boton_key:
             self.bloquear_botones(boton_key)
         
-    def al_cerrar():
-        self.desbloquear_botones()
-        if nombre_ventana in self.ventanas_abiertas:
-            del self.ventanas_abiertas[nombre_ventana]
-        ventana.destroy()
+        # Define el comportamiento cuando se cierra la ventana con la X
+        def al_cerrar():
+            self.desbloquear_botones()
+            if nombre_ventana in self.ventanas_abiertas:
+                del self.ventanas_abiertas[nombre_ventana]
+            ventana.destroy()
         
-        # Protocol: Define el comportamiento cuando se cierra la ventana con la X
-        # Sin esto, la ventana se cierra pero los botones quedan bloqueados
-        # Con esto, primero ejecuta al_cerrar() (desbloquea botones, limpia variables)
-        # y LUEGO cierra la ventana correctamente
         ventana.protocol("WM_DELETE_WINDOW", al_cerrar) 
         
     def ver_horarios_entrenador(self):
@@ -490,7 +487,7 @@ class MenuCliente:
             
             tk.Button(
                 v, 
-                text="🔄 Actualizar", 
+                text="Actualizar", 
                 command=actualizar, 
                 bg="#3498db", 
                 fg="white", 
