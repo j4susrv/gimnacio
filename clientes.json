@@ -1,1 +1,17 @@
-[]
+[
+    {
+        "nombre": "Matias Rauque",
+        "rut": "21.986.316-0",
+        "fecha_nacimiento": "26-11-2005",
+        "estatura": 168.0,
+        "peso": 40.0,
+        "estado_civil": "soltero",
+        "direccion": "quinta normal",
+        "imc": 14.17,
+        "rutina_mensual": 5,
+        "categoria_imc": "Peso bajo",
+        "contraseña": "matiasrauque1",
+        "entrenador_asignado": "16471217-6",
+        "fecha_registro": "2025-12-11"
+    }
+]

@@ -5,7 +5,7 @@ import re
 from validaciones import Validaciones 
 from registro_entrenador import AppEntrenador
 from cliente import Cliente
-from gimnasio import Gimnasio  # ✅ AGREGAR ESTA LÍNEA
+from gimnasio import Gimnasio
 
 def cargar_entrenadores():
     """Carga entrenadores desde el JSON"""
@@ -56,7 +56,7 @@ entrenador = tk.Frame(notebook, bg="white")
 notebook.add(cliente, text="  Cliente  ")
 notebook.add(entrenador, text="  Entrenador  ")
 
-# ✅ CREAR GIMNASIO Y PASARLO
+# CREAR GIMNASIO Y PASARLO
 gimnasio = Gimnasio()
 app_entrenador = AppEntrenador(entrenador, gimnasio=gimnasio)
 

@@ -65,7 +65,7 @@ def verificar_login(rut, contraseña, tipo):
 # Crear ventana principal
 ventana = tk.Tk()  
 ventana.title("Gimnasio Mr. Fat - Login")   
-ventana.state("zoomed")  # ✅ PANTALLA COMPLETA
+ventana.state("zoomed")
 ventana.configure(bg="white")  
 
 # Crear notebook (pestañas)

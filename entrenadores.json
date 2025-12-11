@@ -1,1 +1,45 @@
-[]
+[
+    {
+        "nombre": "Jairo perez",
+        "fecha_nacimiento": "26-10-2000",
+        "rut": "16471217-6",
+        "estatura": 180.0,
+        "peso": 80.0,
+        "especialidades": [
+            "fuerza"
+        ],
+        "contraseña": "matiasrauque1",
+        "turnos": [
+            {
+                "dia": "lunes",
+                "hora_inicio": "07:00:00",
+                "hora_fin": "14:00:00",
+                "horas_trabajo": 7.0
+            },
+            {
+                "dia": "martes",
+                "hora_inicio": "07:00:00",
+                "hora_fin": "14:00:00",
+                "horas_trabajo": 7.0
+            },
+            {
+                "dia": "miércoles",
+                "hora_inicio": "07:00:00",
+                "hora_fin": "14:00:00",
+                "horas_trabajo": 7.0
+            },
+            {
+                "dia": "jueves",
+                "hora_inicio": "07:00:00",
+                "hora_fin": "14:00:00",
+                "horas_trabajo": 7.0
+            },
+            {
+                "dia": "viernes",
+                "hora_inicio": "07:00:00",
+                "hora_fin": "14:00:00",
+                "horas_trabajo": 7.0
+            }
+        ]
+    }
+]

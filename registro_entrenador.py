@@ -61,7 +61,7 @@ class AppEntrenador:
         tk.Label(frame_centro, text="(Lista de especialidades)", bg="white", fg="gray", font=("Helvetica", 8)).grid(row=8, column=2, sticky="nw")
         
         # Botón para asignar turnos
-        ttk.Button(frame_centro, text='⏰ Asignar Turnos', command=self.abrir_ventana_turnos).grid(row=9, column=0, columnspan=3, pady=10)
+        ttk.Button(frame_centro, text='Asignar Turnos', command=self.abrir_ventana_turnos).grid(row=9, column=0, columnspan=3, pady=10)
         
         # Label para mostrar turnos seleccionados
         self.label_turnos_info = tk.Label(frame_centro, text="Turnos asignados: 0", bg="white", fg="blue", font=("Helvetica", 9))

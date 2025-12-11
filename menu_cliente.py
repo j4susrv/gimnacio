@@ -66,7 +66,7 @@ class MenuCliente:
             
             tk.Label(
                 info_frame,
-                text=f"🏋️ {entrenador_info['nombre']}",
+                text=f"Entrenador: {entrenador_info['nombre']}",
                 font=("Helvetica", 12, "bold"),
                 bg="#e8f4fd",
                 fg="#2c3e50"
@@ -318,7 +318,7 @@ class MenuCliente:
         if not turnos:
             tk.Label(
                 scrollable_frame, 
-                text="⚠️ No hay horarios registrados para este entrenador", 
+                text="Sin horarios registrados para este entrenador", 
                 font=("Helvetica", 11), 
                 bg="white", 
                 fg="#e74c3c"
@@ -368,7 +368,7 @@ class MenuCliente:
                         
                         tk.Label(
                             frame_dia, 
-                            text=f"   ⏰ {hora_inicio} - {hora_fin} ({horas}h)", 
+                            text=f"   {hora_inicio} - {hora_fin} ({horas}h)", 
                             font=("Helvetica", 10), 
                             bg="#f8f9fa", 
                             fg="#34495e"
@@ -382,7 +382,7 @@ class MenuCliente:
             
             tk.Label(
                 scrollable_frame,
-                text=f"\n📊 Total: {len(turnos)} turnos/semana ({total_horas:.1f} horas)",
+                text=f"Total: {len(turnos)} turnos/semana ({total_horas:.1f} horas)",
                 font=("Helvetica", 10, "bold"),
                 bg="white",
                 fg="#27ae60"
@@ -451,7 +451,7 @@ class MenuCliente:
                 ("Fecha de Inicio:", fecha_inicio_display),
                 ("Fecha de Vencimiento:", fecha_vencimiento_str),
                 ("Días Restantes:", f"{sus.get('dias_restantes', 0)} días"),
-                ("Estado:", "✅ ACTIVA" if sus.get('activa') else "❌ VENCIDA")
+                ("Estado:", "ACTIVA" if sus.get('activa') else "VENCIDA")
             ]
             
             for label, valor in info_items:
@@ -540,7 +540,7 @@ class MenuCliente:
         else:
             tk.Label(
                 frame_info, 
-                text="❌ No tienes suscripción activa", 
+                text="No tienes suscripcion activa", 
                 font=("Helvetica", 12, "bold"), 
                 bg="white",
                 fg="#e74c3c"
@@ -763,7 +763,7 @@ class MenuCliente:
         
         tk.Label(
             peso_frame,
-            text="📊 Seguimiento de Peso",
+            text="Seguimiento de Peso",
             font=("Helvetica", 12, "bold"),
             bg="#f8f9fa",
             fg="#2c3e50"
@@ -883,7 +883,7 @@ class MenuCliente:
         
         tk.Button(
             botones_frame, 
-            text="📝 Registrar Peso", 
+            text="Registrar Peso", 
             command=self.registrar_nuevo_peso, 
             bg="#3498db", 
             fg="white", 
@@ -895,7 +895,7 @@ class MenuCliente:
         
         tk.Button(
             botones_frame, 
-            text="✏️ Modificar Datos", 
+            text="Modificar Datos", 
             command=lambda: self.modificar_datos(v), 
             bg="#e67e22", 
             fg="white", 
@@ -1163,7 +1163,25 @@ class MenuCliente:
             exito, mensaje = self.gimnasio.registrar_peso(historial)
             
             if exito:
-                messagebox.showinfo("Éxito", f"Peso registrado exitosamente\n{mensaje}")
+                self.cliente_data['peso'] = peso
+                estatura_m = self.cliente_data.get('estatura', 1) / 100
+                nuevo_imc = round(peso / (estatura_m ** 2), 2)
+                self.cliente_data['imc'] = nuevo_imc
+                
+                # Actualizar categoría IMC basada en nuevo IMC
+                if nuevo_imc < 18.5:
+                    categoria = "Peso bajo"
+                elif nuevo_imc < 25:
+                    categoria = "Peso normal"
+                elif nuevo_imc < 30:
+                    categoria = "Sobrepeso"
+                else:
+                    categoria = "Obesidad"
+                self.cliente_data['categoria_imc'] = categoria
+                
+                self.gimnasio.cargar_datos()
+                
+                messagebox.showinfo("Exito", f"Peso registrado exitosamente\nPeso: {peso} kg\nFecha: {fecha_str}")
                 v.destroy()
                 if 'ver_datos' in self.ventanas_abiertas:
                     if self.ventanas_abiertas['ver_datos'].winfo_exists():
